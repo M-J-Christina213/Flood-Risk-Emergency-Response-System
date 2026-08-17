@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Large/raw datasets
+outputs/water_levels_raw.csv
+
+# Generated ML models
+outputs/ml/models/
+
+# Generated plots
+outputs/ml/plots/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,23 @@
+FLOOD WATER LEVEL DATA CLEANING REPORT
+==================================================
+
+Original rows: 27358
+Final rows: 27358
+Completely empty rows removed: 0
+Duplicate rows removed: 0
+
+MISSING VALUES
+------------------------------
+Report_Date: 0
+Report_Time: 0
+River_Station_Raw: 0
+Alert_Level: 0
+Minor_Flood_Level: 0
+Major_Flood_Level: 0
+Previous_Level: 0
+Current_Level: 591
+Status: 1167
+Source_File: 0
+Year: 0
+Month: 0
+Day: 0
