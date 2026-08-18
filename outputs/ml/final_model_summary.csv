@@ -1,0 +1,2 @@
+selected_model,selection_metric,random_forest_mae,random_forest_rmse,random_forest_r2,xgboost_mae,xgboost_rmse,xgboost_r2
+Random Forest,RMSE,0.4109845369802114,0.744538442819179,0.9143501791363492,0.4134886146354753,0.7824223476332663,0.9054122927925116
