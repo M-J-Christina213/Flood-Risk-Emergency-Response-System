@@ -10,18 +10,12 @@ function App() {
 
       <Routes>
 
-        {/* Public user application */}
-        <Route path="/" element={<UserApp />} />
+        {/* Authority dashboard at root */}
+        <Route path="/" element={<AdminDashboard />} />
 
-        {/* Public user pages */}
+        {/* Public user pages (backups) */}
         <Route path="/report" element={<ReportFlood />} />
         <Route path="/alerts" element={<Alerts />} />
-
-        {/* Authority dashboard */}
-        <Route
-          path="/admin"
-          element={<AdminDashboard />}
-        />
 
       </Routes>
 
