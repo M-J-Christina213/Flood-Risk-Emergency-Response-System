@@ -1,3 +1,20 @@
+export interface StationItem {
+  id: string;
+  station: string;
+  latitude: number;
+  longitude: number;
+  risk_level: 'High Risk' | 'Moderate Risk' | 'Low Risk';
+  current_water_level: number;
+  predicted_water_level: number;
+}
+
+export const STATION_DATA: StationItem[] = [
+  { id: "ST-1", station: "Hanwella", latitude: 6.9085, longitude: 80.0834, risk_level: "High Risk", current_water_level: 8.42, predicted_water_level: 9.10 },
+  { id: "ST-2", station: "Glencourse", latitude: 6.9780, longitude: 80.1856, risk_level: "Moderate Risk", current_water_level: 5.87, predicted_water_level: 6.30 },
+  { id: "ST-3", station: "Dunamale", latitude: 7.0025, longitude: 80.3511, risk_level: "Low Risk", current_water_level: 2.15, predicted_water_level: 2.40 },
+  { id: "ST-4", station: "Norwood", latitude: 6.8342, longitude: 80.6154, risk_level: "Low Risk", current_water_level: 1.60, predicted_water_level: 1.75 },
+];
+
 export interface ShelterItem {
   id: string;
   name: string;

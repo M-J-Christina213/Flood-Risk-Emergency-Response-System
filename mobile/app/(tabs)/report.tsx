@@ -1,541 +1,566 @@
-import React, { useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  ScrollView,
-  TextInput,
-  Alert,
-} from "react-native";
-import {
-  Camera,
-  MapPin,
-  Send,
-  WifiOff,
-  CheckCircle2,
-  Clock,
-  RefreshCw,
-  AlertTriangle,
-} from "lucide-react-native";
-import { enqueueReport, getQueuedReports, syncOfflineQueue, QueuedReport } from "@/services/offlineQueue";
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, SafeAreaView, Text, TouchableOpacity, ScrollView, TextInput, Alert, Dimensions } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { ReportOptionCard } from '@/components/ReportOptionCard';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { Waves, Car, Users, House, AlertTriangle, MapPin, CheckCircle2, ChevronRight, ChevronLeft, Camera } from 'lucide-react-native';
+import * as Location from 'expo-location';
 
-const OBSERVATION_TYPES = [
-  "Water on road",
-  "Road completely flooded",
-  "Water entering house/building",
-  "Vehicle stranded",
-  "People need assistance",
-  "Bridge/road damaged",
-  "Other",
+const { width } = Dimensions.get('window');
+
+const REPORT_OPTIONS = [
+  { id: 'water_road', title: 'Water on road', icon: Waves },
+  { id: 'road_flooded', title: 'Road flooded', icon: Waves },
+  { id: 'water_building', title: 'Water entering building', icon: House },
+  { id: 'vehicle_stranded', title: 'Vehicle stranded', icon: Car },
+  { id: 'people_assistance', title: 'People need assistance', icon: Users },
+  { id: 'bridge_damaged', title: 'Bridge/road damaged', icon: AlertTriangle },
+  { id: 'other', title: 'Other', icon: AlertTriangle },
 ];
 
-const DEPTH_LEVELS = [
-  "Below ankle (<10cm)",
-  "Ankle to knee (10-40cm)",
-  "Knee to waist (40-90cm)",
-  "Above waist (>90cm)",
+const SEVERITY_OPTIONS = [
+  { id: 'LOW', label: 'Low' },
+  { id: 'MODERATE', label: 'Moderate' },
+  { id: 'SEVERE', label: 'Severe' },
+  { id: 'CRITICAL', label: 'Critical' },
 ];
 
 export default function ReportScreen() {
-  const [selectedType, setSelectedType] = useState<string>(OBSERVATION_TYPES[0]);
-  const [selectedDepth, setSelectedDepth] = useState<string>(DEPTH_LEVELS[1]);
-  const [severity, setSeverity] = useState<"minor" | "moderate" | "severe" | "critical">("moderate");
-  const [description, setDescription] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
-  const [queue, setQueue] = useState<QueuedReport[]>(getQueuedReports());
-  const [syncing, setSyncing] = useState(false);
+  const [step, setStep] = useState(1);
+  const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [address, setAddress] = useState('Fetching address...');
+  const [description, setDescription] = useState('');
+  const [severity, setSeverity] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false); // In a real app, use NetInfo
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  useEffect(() => {
+    if (step === 2 && !location) {
+      getLocation();
+    }
+  }, [step]);
+
+  const getLocation = async () => {
     try {
-      const fullDescription = `[Depth: ${selectedDepth}] ${description}`.trim();
-      const reportItem = await enqueueReport({
-        latitude: 6.9069,
-        longitude: 80.1347,
-        report_type: selectedType,
-        description: fullDescription,
-        severity: severity,
-        anonymous: true,
-      });
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setAddress('Permission to access location was denied');
+        return;
+      }
 
-      setQueue(getQueuedReports());
-      setDescription("");
+      let loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc);
       
-      Alert.alert(
-        reportItem.queueStatus === "Submitted" ? "Report Submitted" : "Saved Offline",
-        reportItem.queueStatus === "Submitted"
-          ? "Thank you. Your flood report has been received by DMC authorities."
-          : "Network unavailable. Your report has been saved locally and queued for automatic upload."
-      );
+      // Simulate reverse geocoding
+      setTimeout(() => setAddress('Hanwella, Western Province (Estimated)'), 1000);
     } catch (e) {
-      console.warn("Report submit error:", e);
-    } finally {
-      setSubmitting(false);
+      setAddress('Could not fetch location automatically');
     }
   };
 
-  const handleSyncQueue = async () => {
-    setSyncing(true);
-    try {
-      const res = await syncOfflineQueue();
-      setQueue(getQueuedReports());
-      Alert.alert(
-        "Offline Sync Complete",
-        `Successfully synced ${res.syncedCount} offline reports with DMC server.`
-      );
-    } catch (e) {
-      console.warn("Sync error:", e);
-    } finally {
-      setSyncing(false);
+  const handleNext = () => {
+    if (step === 1 && !selectedIncident) {
+      Alert.alert('Selection Required', 'Please select what is happening.');
+      return;
     }
+    if (step === 3 && !severity) {
+      Alert.alert('Severity Required', 'Please select the severity level.');
+      return;
+    }
+    setStep(step + 1);
   };
+
+  const handleBack = () => {
+    setStep(step - 1);
+  };
+
+  const handleSubmit = () => {
+    setIsSubmitted(true);
+  };
+
+  const renderStepIndicator = () => {
+    return (
+      <View style={styles.stepIndicatorContainer}>
+        {[1, 2, 3, 4].map((s, index) => (
+          <React.Fragment key={s}>
+            <View style={[styles.stepDot, step >= s && styles.stepDotActive]}>
+              <Text style={[styles.stepNumber, step >= s && styles.stepNumberActive]}>{s}</Text>
+            </View>
+            {index < 3 && <View style={[styles.stepLine, step > s && styles.stepLineActive]} />}
+          </React.Fragment>
+        ))}
+      </View>
+    );
+  };
+
+  if (isSubmitted) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.successContainer}>
+          <CheckCircle2 size={64} color={Colors.safe} />
+          <Text style={styles.successTitle}>Report Submitted</Text>
+          <Text style={styles.successText}>
+            Thank you. Your report has been submitted to emergency responders.
+          </Text>
+          <View style={styles.reportIdBox}>
+            <Text style={styles.reportIdLabel}>REPORT ID</Text>
+            <Text style={styles.reportIdValue}>FL-9284-A</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.doneButton}
+            onPress={() => {
+              setStep(1);
+              setSelectedIncident(null);
+              setSeverity(null);
+              setDescription('');
+              setIsSubmitted(false);
+            }}
+          >
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* HEADER */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Report Flooding</Text>
-          <Text style={styles.subtitle}>
-            Help emergency responders by sharing observed conditions in your area.
-          </Text>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        {step > 1 ? (
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <ChevronLeft size={24} color={Colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+        <Text style={styles.headerTitle}>Report Incident</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        {/* GPS LOCATION AUTOMATIC CARD */}
-        <View style={styles.gpsCard}>
-          <View style={styles.gpsIconBox}>
-            <MapPin size={20} color="#2563EB" />
+      {renderStepIndicator()}
+      {isOffline && <View style={{ paddingHorizontal: 20 }}><OfflineBanner /></View>}
+
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
+        {step === 1 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>What is happening?</Text>
+            <Text style={styles.stepSubtitle}>Select the option that best describes the situation.</Text>
+            
+            {REPORT_OPTIONS.map((opt) => (
+              <ReportOptionCard
+                key={opt.id}
+                title={opt.title}
+                Icon={opt.icon}
+                selected={selectedIncident === opt.id}
+                onPress={() => setSelectedIncident(opt.id)}
+              />
+            ))}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.gpsLabel}>CAPTURED GPS COORDINATES</Text>
-            <Text style={styles.gpsValue}>6.9069° N, 80.1347° E (Hanwella)</Text>
-          </View>
-          <View style={styles.autoBadge}>
-            <Text style={styles.autoText}>Auto Location</Text>
-          </View>
-        </View>
+        )}
 
-        {/* SECTION 1: WHAT ARE YOU OBSERVING */}
-        <Text style={styles.sectionTitle}>1. What are you seeing?</Text>
-        <View style={styles.optionsGrid}>
-          {OBSERVATION_TYPES.map((type) => {
-            const isSelected = selectedType === type;
-            return (
-              <Pressable
-                key={type}
-                style={[styles.optionChip, isSelected && styles.optionChipActive]}
-                onPress={() => setSelectedType(type)}
-              >
-                <Text style={[styles.optionText, isSelected && styles.optionTextActive]}>
-                  {type}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {step === 2 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Where?</Text>
+            <Text style={styles.stepSubtitle}>Confirm your current location for the report.</Text>
 
-        {/* SECTION 2: ESTIMATED WATER DEPTH */}
-        <Text style={styles.sectionTitle}>2. Estimated Water Depth</Text>
-        <View style={styles.depthList}>
-          {DEPTH_LEVELS.map((depth) => {
-            const isSelected = selectedDepth === depth;
-            return (
-              <Pressable
-                key={depth}
-                style={[styles.depthCard, isSelected && styles.depthCardActive]}
-                onPress={() => setSelectedDepth(depth)}
-              >
-                <View
-                  style={[styles.radioCircle, isSelected && styles.radioCircleActive]}
-                />
-                <Text style={[styles.depthText, isSelected && styles.depthTextActive]}>
-                  {depth}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* SECTION 3: SEVERITY LEVEL */}
-        <Text style={styles.sectionTitle}>3. Incident Severity</Text>
-        <View style={styles.severityRow}>
-          {(["minor", "moderate", "severe", "critical"] as const).map((sev) => {
-            const isSelected = severity === sev;
-            return (
-              <Pressable
-                key={sev}
-                style={[
-                  styles.sevBtn,
-                  isSelected && {
-                    backgroundColor:
-                      sev === "critical"
-                        ? "#DC2626"
-                        : sev === "severe"
-                        ? "#EA580C"
-                        : sev === "moderate"
-                        ? "#EAB308"
-                        : "#22C55E",
-                  },
-                ]}
-                onPress={() => setSeverity(sev)}
-              >
-                <Text
-                  style={[
-                    styles.sevText,
-                    isSelected && { color: "#FFFFFF", fontWeight: "900" },
-                  ]}
-                >
-                  {sev.toUpperCase()}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* SECTION 4: DESCRIPTION */}
-        <Text style={styles.sectionTitle}>4. Optional Details</Text>
-        <TextInput
-          style={styles.textInput}
-          multiline
-          numberOfLines={3}
-          placeholder="Add landmark, road name, or trapped vehicle details..."
-          placeholderTextColor="#94A3B8"
-          value={description}
-          onChangeText={setDescription}
-        />
-
-        {/* SUBMIT BUTTON */}
-        <Pressable
-          style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          <Send size={20} color="#FFFFFF" />
-          <Text style={styles.submitText}>
-            {submitting ? "Submitting Report..." : "Submit Flood Report"}
-          </Text>
-        </Pressable>
-
-        {/* OFFLINE QUEUE STATUS & SYNC PANEL */}
-        <View style={styles.queueContainer}>
-          <View style={styles.queueHeader}>
-            <View style={styles.queueHeaderTitle}>
-              <WifiOff size={18} color="#64748B" />
-              <Text style={styles.queueHeading}>Offline Report Queue</Text>
-            </View>
-            <Pressable style={styles.syncBtn} onPress={handleSyncQueue} disabled={syncing}>
-              <RefreshCw size={14} color="#2563EB" />
-              <Text style={styles.syncText}>{syncing ? "Syncing..." : "Sync Queue"}</Text>
-            </Pressable>
-          </View>
-
-          {queue.length === 0 ? (
-            <Text style={styles.emptyQueueText}>No offline reports waiting to sync.</Text>
-          ) : (
-            queue.map((item) => (
-              <View key={item.queueId} style={styles.queueItemCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.qType}>{item.report_type}</Text>
-                  <Text style={styles.qDate}>Created: {new Date(item.createdAt).toLocaleTimeString()}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.qBadge,
-                    {
-                      backgroundColor:
-                        item.queueStatus === "Submitted"
-                          ? "#DCFCE7"
-                          : item.queueStatus === "Saved Offline"
-                          ? "#FEF9C3"
-                          : "#FEE2E2",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.qBadgeText,
-                      {
-                        color:
-                          item.queueStatus === "Submitted"
-                            ? "#166534"
-                            : item.queueStatus === "Saved Offline"
-                            ? "#CA8A04"
-                            : "#DC2626",
-                      },
-                    ]}
-                  >
-                    {item.queueStatus}
-                  </Text>
-                </View>
+            <View style={styles.mapPreview}>
+              <View style={styles.mapPlaceholder}>
+                <MapPin size={32} color={Colors.primary} />
+                <Text style={styles.mapPlaceholderText}>Map Preview</Text>
               </View>
-            ))
-          )}
-        </View>
+            </View>
+
+            <View style={styles.locationDetails}>
+              <Text style={styles.locationLabel}>DETECTED ADDRESS</Text>
+              <Text style={styles.locationValue}>{address}</Text>
+              {location && (
+                <Text style={styles.accuracyText}>
+                  GPS Accuracy: {Math.round(location.coords.accuracy || 0)}m
+                </Text>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.outlineButton}>
+              <Text style={styles.outlineButtonText}>Adjust Location Manually</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {step === 3 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Details</Text>
+            <Text style={styles.stepSubtitle}>Provide additional information (optional).</Text>
+
+            <TouchableOpacity style={styles.photoUpload}>
+              <Camera size={32} color={Colors.primary} />
+              <Text style={styles.photoUploadText}>Add Photo</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.inputLabel}>DESCRIPTION</Text>
+            <TextInput
+              style={styles.textInput}
+              multiline
+              numberOfLines={4}
+              placeholder="Any additional details..."
+              placeholderTextColor={Colors.textSecondary}
+              value={description}
+              onChangeText={setDescription}
+            />
+
+            <Text style={styles.inputLabel}>SEVERITY LEVEL *</Text>
+            <View style={styles.severityGrid}>
+              {SEVERITY_OPTIONS.map((sev) => (
+                <TouchableOpacity
+                  key={sev.id}
+                  style={[
+                    styles.severityBtn,
+                    severity === sev.id && styles.severityBtnActive
+                  ]}
+                  onPress={() => setSeverity(sev.id)}
+                >
+                  <Text style={[
+                    styles.severityText,
+                    severity === sev.id && styles.severityTextActive
+                  ]}>
+                    {sev.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {step === 4 && (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>Review Report</Text>
+            <Text style={styles.stepSubtitle}>Please verify the information before submitting.</Text>
+
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>INCIDENT</Text>
+                <Text style={styles.summaryValue}>
+                  {REPORT_OPTIONS.find(o => o.id === selectedIncident)?.title}
+                </Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>LOCATION</Text>
+                <Text style={styles.summaryValue}>{address}</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>SEVERITY</Text>
+                <Text style={styles.summaryValue}>{severity}</Text>
+              </View>
+            </View>
+          </View>
+        )}
       </ScrollView>
+
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.nextButton} onPress={step === 4 ? handleSubmit : handleNext}>
+          <Text style={styles.nextButtonText}>{step === 4 ? 'Submit Report' : 'Next Step'}</Text>
+          {step < 4 && <ChevronRight size={20} color={Colors.surface} />}
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
   container: {
     flex: 1,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-    maxWidth: 520,
-    width: "100%",
-    alignSelf: "center",
+    backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  stepIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 40,
+  },
+  stepDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepDotActive: {
+    backgroundColor: Colors.primary,
+  },
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  stepNumberActive: {
+    color: Colors.surface,
+  },
+  stepLine: {
+    flex: 1,
+    height: 3,
+    backgroundColor: Colors.border,
+    marginHorizontal: 4,
+  },
+  stepLineActive: {
+    backgroundColor: Colors.primary,
+  },
+  content: {
+    flex: 1,
+  },
+  stepContainer: {
+    paddingHorizontal: 20,
+  },
+  stepTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  stepSubtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginBottom: 24,
+  },
+  footer: {
+    padding: 20,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  nextButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 8,
+  },
+  nextButtonText: {
+    color: Colors.surface,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  mapPreview: {
+    height: 200,
+    backgroundColor: Colors.border,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  mapPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+  },
+  mapPlaceholderText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primaryDark,
+  },
+  locationDetails: {
+    backgroundColor: Colors.surface,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
     marginBottom: 16,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#0F172A",
-  },
-  subtitle: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  gpsCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    gap: 12,
-    marginBottom: 20,
-  },
-  gpsIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#EFF6FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  gpsLabel: {
-    fontSize: 9,
-    fontWeight: "800",
-    color: "#94A3B8",
-  },
-  gpsValue: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginTop: 1,
-  },
-  autoBadge: {
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  autoText: {
+  locationLabel: {
     fontSize: 10,
-    fontWeight: "700",
-    color: "#64748B",
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F172A",
-    marginTop: 16,
-    marginBottom: 10,
+  locationValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
   },
-  optionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  optionChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  optionChipActive: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-  optionText: {
+  accuracyText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
+    color: Colors.safe,
+    fontWeight: '500',
   },
-  optionTextActive: {
-    color: "#FFFFFF",
-  },
-  depthList: {
-    gap: 8,
-  },
-  depthCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    gap: 12,
-  },
-  depthCardActive: {
-    borderColor: "#2563EB",
-    backgroundColor: "#EFF6FF",
-  },
-  radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  outlineButton: {
     borderWidth: 2,
-    borderColor: "#CBD5E1",
+    borderColor: Colors.primary,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
-  radioCircleActive: {
-    borderColor: "#2563EB",
-    backgroundColor: "#2563EB",
+  outlineButtonText: {
+    color: Colors.primary,
+    fontSize: 15,
+    fontWeight: '700',
   },
-  depthText: {
+  photoUpload: {
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  photoUploadText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  inputLabel: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#475569",
-  },
-  depthTextActive: {
-    color: "#2563EB",
-  },
-  severityRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  sevBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    alignItems: "center",
-  },
-  sevText: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#64748B",
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    padding: 12,
-    fontSize: 13,
-    color: "#0F172A",
-    textAlignVertical: "top",
-    minHeight: 80,
-  },
-  submitBtn: {
-    marginTop: 22,
-    backgroundColor: "#2563EB",
+    borderColor: Colors.border,
     borderRadius: 16,
     padding: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    elevation: 3,
+    fontSize: 16,
+    color: Colors.text,
+    textAlignVertical: 'top',
+    marginBottom: 24,
   },
-  submitText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "900",
+  severityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  queueContainer: {
-    marginTop: 28,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16,
+  severityBtn: {
+    width: '48%',
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  queueHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+  severityBtnActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  queueHeaderTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  severityText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text,
   },
-  queueHeading: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F172A",
+  severityTextActive: {
+    color: Colors.surface,
   },
-  syncBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#EFF6FF",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+  summaryCard: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 16,
   },
-  syncText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#2563EB",
+  summaryRow: {
+    paddingVertical: 8,
   },
-  emptyQueueText: {
-    fontSize: 12,
-    color: "#94A3B8",
-    fontStyle: "italic",
-    textAlign: "center",
-    marginVertical: 10,
-  },
-  queueItemCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  qType: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  qDate: {
+  summaryLabel: {
     fontSize: 10,
-    color: "#94A3B8",
-    marginTop: 2,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  qBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
   },
-  qBadgeText: {
-    fontSize: 9,
-    fontWeight: "800",
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: 4,
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.text,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  successText: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 40,
+    paddingHorizontal: 20,
+  },
+  reportIdBox: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  reportIdLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  reportIdValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.text,
+    letterSpacing: 2,
+  },
+  doneButton: {
+    backgroundColor: Colors.primary,
+    width: '100%',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: Colors.surface,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
