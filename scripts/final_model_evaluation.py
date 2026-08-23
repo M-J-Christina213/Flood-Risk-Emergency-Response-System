@@ -100,7 +100,3 @@ print("RECOMMENDED MODEL FOR WEB APPLICATION")
 print("=" * 70)
 
 print(final_model)
-
-print("\n" + "=" * 70)
-print("STEP 13 COMPLETE")
-print("=" * 70)
