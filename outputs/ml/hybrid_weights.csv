@@ -1,0 +1,2 @@
+w_random_forest,w_gradient_boosting,rf_val_rmse,gbr_val_rmse,validation_period_start,validation_period_end,weight_derivation_method,test_set_used_for_weights
+0.50381809,0.49618191,0.57758723,0.58647622,2024-01-01,2024-12-31,inverse_RMSE,False
