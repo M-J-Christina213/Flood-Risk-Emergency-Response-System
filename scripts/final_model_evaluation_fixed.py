@@ -444,9 +444,7 @@ summary.to_csv(
 print("\nSaved:")
 print(summary_file)
 
-# ============================================================
-# COPY SELECTED MODEL TO CLEAR NAME
-# ============================================================
+
 
 if final_model_name == "Random Forest":
 
