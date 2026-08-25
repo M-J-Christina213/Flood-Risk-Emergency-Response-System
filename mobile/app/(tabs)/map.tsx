@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,7 +13,6 @@ import { Colors } from '@/constants/theme';
 import { MapBottomSheet } from '@/components/MapBottomSheet';
 import { Layers, Crosshair } from 'lucide-react-native';
 import { STATION_DATA, StationItem } from '@/constants/data';
-import WebMap from '@/components/WebMap';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,6 +20,11 @@ const { width, height } = Dimensions.get('window');
 export default function MapScreen() {
   const [selectedStation, setSelectedStation] = useState<StationItem | null>(null);
   const [isBottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const initialRegion = {
     latitude: 6.904,
@@ -50,6 +54,10 @@ export default function MapScreen() {
 
   // On web, use the react-leaflet WebMap component
   if (Platform.OS === 'web') {
+    if (!isClient) {
+      return <SafeAreaView style={styles.container} />;
+    }
+    const WebMap = require('@/components/WebMap').default;
     return (
       <SafeAreaView style={styles.container}>
         <WebMap onMarkerPress={handleMarkerPress} />
