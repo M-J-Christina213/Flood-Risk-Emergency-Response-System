@@ -22,12 +22,27 @@ from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parent.parent
 
-MODEL_PATH = (
+MODEL_RF_PATH = (
     ROOT
     / "outputs"
     / "ml"
     / "models"
-    / "flood_prediction_model.pkl"
+    / "random_forest_fixed.pkl"
+)
+
+MODEL_GB_PATH = (
+    ROOT
+    / "outputs"
+    / "ml"
+    / "models"
+    / "gradient_boosting_fixed.pkl"
+)
+
+WEIGHTS_PATH = (
+    ROOT
+    / "outputs"
+    / "ml"
+    / "hybrid_weights.csv"
 )
 
 DATA_PATH = (
@@ -51,12 +66,26 @@ print("=" * 70)
 print("FLOOD RISK PREDICTION API")
 print("=" * 70)
 
-print("\nLoading model:")
-print(MODEL_PATH)
+print("\nLoading models:")
+print(MODEL_RF_PATH)
+print(MODEL_GB_PATH)
 
-model = joblib.load(MODEL_PATH)
+model_rf = joblib.load(MODEL_RF_PATH)
+model_gb = joblib.load(MODEL_GB_PATH)
 
-print("Model loaded successfully.")
+print("Models loaded successfully.")
+
+print("\nLoading hybrid weights:")
+print(WEIGHTS_PATH)
+try:
+    weights_df = pd.read_csv(WEIGHTS_PATH)
+    W_RF = float(weights_df["w_random_forest"].iloc[0])
+    W_GB = float(weights_df["w_gradient_boosting"].iloc[0])
+    print(f"Weights loaded -> RF: {W_RF:.6f}, GB: {W_GB:.6f}")
+except Exception as e:
+    print("Failed to load weights. Defaulting to 0.5/0.5", e)
+    W_RF = 0.503818
+    W_GB = 0.496182
 
 
 # ============================================================
@@ -283,9 +312,10 @@ def predict_station(station_name: str):
         columns=FEATURES
     )
 
-    prediction = float(
-        model.predict(X)[0]
-    )
+    rf_pred = float(model_rf.predict(X)[0])
+    gb_pred = float(model_gb.predict(X)[0])
+    
+    prediction = (W_RF * rf_pred) + (W_GB * gb_pred)
 
     current_level = float(
         row["water_level_current"]
@@ -355,7 +385,7 @@ def predict_station(station_name: str):
             else float(major_level)
         ),
 
-        "model": "Random Forest"
+        "model": "RF + GB Hybrid"
     }
 
 
@@ -369,7 +399,7 @@ def home():
     return {
         "system": "Flood Risk Prediction & Emergency Response System",
         "status": "running",
-        "model": "Random Forest",
+        "model": "RF + GB Hybrid",
         "purpose": "Next-step river water-level prediction"
     }
 
