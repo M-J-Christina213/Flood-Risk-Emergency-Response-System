@@ -11,8 +11,8 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Colors } from '@/constants/theme';
 import { MapBottomSheet } from '@/components/MapBottomSheet';
-import { Layers, Crosshair } from 'lucide-react-native';
-import { STATION_DATA, StationItem } from '@/constants/data';
+import { Layers, Crosshair, MapPin } from 'lucide-react-native';
+import { STATION_DATA, StationItem, NEARBY_SHELTERS_DATA, ShelterItem } from '@/constants/data';
 
 const { width, height } = Dimensions.get('window');
 
@@ -102,6 +102,7 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         showsCompass={false}
       >
+        {/* Render River Stations */}
         {STATION_DATA.map((station: StationItem) => (
           <Marker
             key={station.id}
@@ -118,6 +119,23 @@ export default function MapScreen() {
               ]}
             >
               <View style={styles.markerInner} />
+            </View>
+          </Marker>
+        ))}
+
+        {/* Render Safe Shelters */}
+        {NEARBY_SHELTERS_DATA.map((shelter: ShelterItem) => (
+          <Marker
+            key={shelter.id}
+            coordinate={{
+              latitude: shelter.lat,
+              longitude: shelter.lon,
+            }}
+            title={shelter.name}
+            description={`Capacity: ${shelter.capacity - shelter.occupancy} available`}
+          >
+            <View style={styles.shelterMarker}>
+              <MapPin size={16} color="#fff" />
             </View>
           </Marker>
         ))}
@@ -178,6 +196,21 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: Colors.surface,
+  },
+  shelterMarker: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   controlsContainer: {
     position: 'absolute',

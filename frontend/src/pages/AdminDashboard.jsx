@@ -61,7 +61,7 @@ export default function AdminDashboard() {
   const [alerts, setAlerts] = useState(MOCK_ALERTS);
   const [shelters, setShelters] = useState(MOCK_SHELTERS);
   const [resources, setResources] = useState(MOCK_RESOURCES);
-  const [selectedModel, setSelectedModel] = useState("Random Forest");
+  const [selectedModel, setSelectedModel] = useState("RF + GB Hybrid");
 
   // Create alert form state
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -677,6 +677,16 @@ export default function AdminDashboard() {
                     <div className="mt-6 space-y-3">
                       <label className="block text-xs font-bold text-slate-500">Current Model Target</label>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => setSelectedModel("RF + GB Hybrid")}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
+                            selectedModel === "RF + GB Hybrid"
+                              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                              : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                          }`}
+                        >
+                          RF+GB Hybrid
+                        </button>
                         <button
                           onClick={() => setSelectedModel("Random Forest")}
                           className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
