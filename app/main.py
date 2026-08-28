@@ -11,9 +11,16 @@ import math
 import joblib
 import pandas as pd
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from .database import engine, get_db
+from . import models
+
+# Create tables
+models.Base.metadata.create_all(bind=engine)
 
 
 # ============================================================
@@ -463,12 +470,31 @@ def station_information(
 
 @app.get("/predict/{station_name}")
 def station_prediction(
-    station_name: str
+    station_name: str,
+    db: Session = Depends(get_db)
 ):
 
     result = predict_station(
         station_name
     )
+
+    # Log prediction to DB
+    log_entry = models.PredictionLog(
+        station=result["station"],
+        prediction_time=result["datetime"],
+        river=result["river"],
+        river_basin=result["river_basin"],
+        current_water_level=result["current_water_level"],
+        predicted_water_level=result["predicted_water_level"],
+        rainfall_12hr=result["rainfall_12hr"],
+        risk_level=result["risk_level"],
+        alert_level=result["alert_level"],
+        minor_flood_level=result["minor_flood_level"],
+        major_flood_level=result["major_flood_level"],
+        model=result["model"]
+    )
+    db.add(log_entry)
+    db.commit()
 
     return {
         "station": result["station"],
@@ -562,82 +588,47 @@ def nearby_station(
 
 @app.post("/reports")
 def submit_report(
-    report: ReportRequest
+    report: ReportRequest,
+    db: Session = Depends(get_db)
 ):
 
-    report = {
-        "id": (
-            datetime.now(timezone.utc)
-            .strftime("%Y%m%d%H%M%S%f")
-        ),
-
-        "submitted_at":
-            datetime.now(timezone.utc)
-            .isoformat(),
-
-        "latitude":
-            report.latitude,
-
-        "longitude":
-            report.longitude,
-
-        "report_type":
-            report.report_type,
-
-        "description":
-            report.description,
-
-        "severity":
-            report.severity,
-
-        "anonymous":
-            report.anonymous,
-
-        "status":
-            "new"
-    }
-
-    REPORTS_PATH.parent.mkdir(
-        parents=True,
-        exist_ok=True
+    report_id = (
+        datetime.now(timezone.utc)
+        .strftime("%Y%m%d%H%M%S%f")
     )
+    submitted_at = datetime.now(timezone.utc).isoformat()
 
-    existing_reports = []
+    db_report = models.Report(
+        id=report_id,
+        submitted_at=submitted_at,
+        latitude=report.latitude,
+        longitude=report.longitude,
+        report_type=report.report_type,
+        description=report.description,
+        severity=report.severity,
+        anonymous=report.anonymous,
+        status="new"
+    )
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
 
-    if REPORTS_PATH.exists():
-
-        try:
-
-            with open(
-                REPORTS_PATH,
-                "r",
-                encoding="utf-8"
-            ) as file:
-
-                existing_reports = json.load(file)
-
-        except Exception:
-
-            existing_reports = []
-
-    existing_reports.append(report)
-
-    with open(
-        REPORTS_PATH,
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            existing_reports,
-            file,
-            indent=2
-        )
+    report_dict = {
+        "id": report_id,
+        "submitted_at": submitted_at,
+        "latitude": db_report.latitude,
+        "longitude": db_report.longitude,
+        "report_type": db_report.report_type,
+        "description": db_report.description,
+        "severity": db_report.severity,
+        "anonymous": db_report.anonymous,
+        "status": db_report.status
+    }
 
     return {
         "success": True,
         "message": "Flood report received.",
-        "report": report
+        "report": report_dict
     }
 
 
@@ -646,28 +637,24 @@ def submit_report(
 # ============================================================
 
 @app.get("/reports")
-def get_reports():
+def get_reports(
+    db: Session = Depends(get_db)
+):
 
-    if not REPORTS_PATH.exists():
-
-        return {
-            "count": 0,
-            "reports": []
-        }
-
-    try:
-
-        with open(
-            REPORTS_PATH,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            reports = json.load(file)
-
-    except Exception:
-
-        reports = []
+    db_reports = db.query(models.Report).all()
+    reports = []
+    for r in db_reports:
+        reports.append({
+            "id": r.id,
+            "submitted_at": r.submitted_at,
+            "latitude": r.latitude,
+            "longitude": r.longitude,
+            "report_type": r.report_type,
+            "description": r.description,
+            "severity": r.severity,
+            "anonymous": r.anonymous,
+            "status": r.status
+        })
 
     return {
         "count": len(reports),
