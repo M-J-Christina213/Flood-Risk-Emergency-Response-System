@@ -27,7 +27,8 @@ import {
   fetchStations,
   fetchStationInfo,
   fetchCitizenReports,
-  submitCitizenReport
+  submitCitizenReport,
+  fetchPriorityAreas
 } from "../services/api";
 import {
   STATION_COORDINATES,
@@ -42,13 +43,13 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Real-time API States
   const [apiHealth, setApiHealth] = useState({ status: "offline", model_loaded: false, dataset_loaded: false, stations: 0 });
   const [stations, setStations] = useState([]);
   const [stationsData, setStationsData] = useState([]);
   const [citizenReports, setCitizenReports] = useState([]);
-  
+
   // Interactive UI States
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRiver, setSelectedRiver] = useState("All");
@@ -56,12 +57,14 @@ export default function AdminDashboard() {
   const [selectedStation, setSelectedStation] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedZoom, setSelectedZoom] = useState(null);
-  
+
   // Mock State Managers (for Admin operations in UI)
   const [alerts, setAlerts] = useState(MOCK_ALERTS);
   const [shelters, setShelters] = useState(MOCK_SHELTERS);
   const [resources, setResources] = useState(MOCK_RESOURCES);
-  const [selectedModel, setSelectedModel] = useState("RF + GB Hybrid");
+  const [selectedModel, setSelectedModel] = useState("Random Forest");
+  const [priorityAreas, setPriorityAreas] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Create alert form state
   const [showAlertModal, setShowAlertModal] = useState(false);
@@ -89,7 +92,7 @@ export default function AdminDashboard() {
       // 3. Fetch detailed data for each station
       const detailedData = [];
       const stationsToFetch = stationsListRes.stations.slice(0, 15); // Load first 15 to keep dashboard responsive
-      
+
       for (const stationName of stationsToFetch) {
         const info = await fetchStationInfo(stationName);
         if (info) {
@@ -101,7 +104,11 @@ export default function AdminDashboard() {
       // 4. Fetch Citizen Reports
       const reportsRes = await fetchCitizenReports();
       setCitizenReports(reportsRes.reports || []);
-      
+
+      // 5. Fetch Priority Areas
+      const priorityRes = await fetchPriorityAreas();
+      setPriorityAreas(priorityRes.priority_areas || []);
+
     } catch (err) {
       console.error("Dashboard data fetching failed:", err);
       setError("Failed to connect to the backend server. Please make sure the FastAPI server is running.");
@@ -112,6 +119,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+    // Live clock — updates every second
+    const clockInterval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(clockInterval);
   }, []);
 
   const handleRefresh = () => {
@@ -128,8 +138,8 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateReportStatus = (reportId, newStatus) => {
-    setCitizenReports(prevReports => 
-      prevReports.map(report => 
+    setCitizenReports(prevReports =>
+      prevReports.map(report =>
         report.id === reportId ? { ...report, status: newStatus } : report
       )
     );
@@ -159,7 +169,7 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateShelterOccupancy = (shelterId, increment) => {
-    setShelters(prevShelters => 
+    setShelters(prevShelters =>
       prevShelters.map(shelter => {
         if (shelter.id === shelterId) {
           const newOccupancy = Math.max(0, Math.min(shelter.capacity, shelter.occupancy + increment));
@@ -171,8 +181,8 @@ export default function AdminDashboard() {
   };
 
   const handleUpdateResourceStatus = (resourceId, newStatus) => {
-    setResources(prevResources => 
-      prevResources.map(res => 
+    setResources(prevResources =>
+      prevResources.map(res =>
         res.id === resourceId ? { ...res, status: newStatus } : res
       )
     );
@@ -180,10 +190,10 @@ export default function AdminDashboard() {
 
   // Filters calculation
   const uniqueRivers = ["All", ...new Set(stationsData.map(s => s.river).filter(Boolean))];
-  
+
   const filteredStations = stationsData.filter(s => {
-    const matchesSearch = s.station.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (s.river && s.river.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = s.station.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.river && s.river.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesRiver = selectedRiver === "All" || s.river === selectedRiver;
     const matchesRisk = selectedRisk === "All" || s.risk_level === selectedRisk;
     return matchesSearch && matchesRiver && matchesRisk;
@@ -195,12 +205,41 @@ export default function AdminDashboard() {
   const activeAlertsCount = alerts.filter(a => a.status === "Active").length;
   const newReportsCount = citizenReports.filter(r => r.status === "new").length;
 
+  // Risk breakdown counts
+  const lowCount = stationsData.filter(s => s.risk_level === "Low").length;
+  const moderateCount = stationsData.filter(s => s.risk_level === "Moderate").length;
+  const highOnlyCount = stationsData.filter(s => s.risk_level === "High").length;
+  const veryHighCount = stationsData.filter(s => s.risk_level === "Very High").length;
+
+  // Formatted Colombo time
+  const colomboTime = currentTime.toLocaleString("en-LK", {
+    timeZone: "Asia/Colombo",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+
+  const lastPredictionTime = stationsData.length > 0 && stationsData[0].prediction_generated_at
+    ? new Date(stationsData[0].prediction_generated_at).toLocaleString("en-LK", {
+      timeZone: "Asia/Colombo",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    })
+    : "--";
+
   return (
     <div className="flex h-screen bg-[#f8fafc] text-slate-800 font-sans overflow-hidden">
-      
+
       {/* SIDEBAR */}
       <aside className="w-80 bg-[#0f172a] text-slate-300 flex flex-col z-20 shadow-2xl border-r border-slate-800">
-        
+
         {/* DMC Logo header */}
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
           <div className="p-2 bg-blue-600 rounded-xl text-white animate-pulse">
@@ -216,11 +255,10 @@ export default function AdminDashboard() {
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "overview"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "overview"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <LayoutDashboard size={20} />
             <span>Dashboard Overview</span>
@@ -228,11 +266,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("prediction")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "prediction"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "prediction"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <TrendingUp size={20} />
             <span>Flood Risk Prediction</span>
@@ -240,11 +277,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("monitoring")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "monitoring"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "monitoring"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <Activity size={20} />
             <span>Live River Monitoring</span>
@@ -252,11 +288,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("rainfall")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "rainfall"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "rainfall"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <CloudRain size={20} />
             <span>Rainfall Monitoring</span>
@@ -264,11 +299,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("map")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "map"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "map"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <MapIcon size={20} />
             <span>GIS Risk Map</span>
@@ -278,11 +312,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("alerts")}
-            className={`w-full flex items-center justify-between px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "alerts"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center justify-between px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "alerts"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <div className="flex items-center gap-3.5">
               <BellRing size={20} />
@@ -295,11 +328,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("reports")}
-            className={`w-full flex items-center justify-between px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "reports"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center justify-between px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "reports"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <div className="flex items-center gap-3.5">
               <AlertOctagon size={20} />
@@ -312,11 +344,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("shelters")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "shelters"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "shelters"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <HomeIcon size={20} />
             <span>Shelters Directory</span>
@@ -324,11 +355,10 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("resources")}
-            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${
-              activeTab === "resources"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
-                : "hover:bg-slate-800/60 hover:text-white text-slate-400"
-            }`}
+            className={`w-full flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl font-medium transition-all duration-200 ${activeTab === "resources"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/30"
+              : "hover:bg-slate-800/60 hover:text-white text-slate-400"
+              }`}
           >
             <LifeBuoy size={20} />
             <span>Rescue Resources</span>
@@ -359,7 +389,7 @@ export default function AdminDashboard() {
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        
+
         {/* TOP NAVBAR */}
         <header className="h-20 bg-white border-b border-slate-200 px-8 flex justify-between items-center shrink-0 shadow-sm">
           <div>
@@ -376,9 +406,14 @@ export default function AdminDashboard() {
             </h2>
             <p className="text-xs text-slate-400 font-medium">Sri Lanka Flood-Risk-Emergency-Response-System</p>
           </div>
-
+          {/* Live Clock */}
           <div className="flex items-center gap-4">
-            <button 
+            <div className="text-right border-r border-slate-200 pr-4">
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">System Time (Sri Lanka)</p>
+              <p className="text-sm font-extrabold text-slate-700 font-mono">{colomboTime}</p>
+              <p className="text-[10px] text-slate-400">Last prediction: {lastPredictionTime}</p>
+            </div>
+            <button
               onClick={handleRefresh}
               className="p-2.5 text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:text-slate-800 rounded-xl transition duration-200 flex items-center gap-1.5 text-sm font-semibold"
             >
@@ -415,10 +450,10 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "overview" && (
             <div className="space-y-6">
-              
+
               {/* KPI Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                
+
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5 hover:shadow-md transition">
                   <div className="p-4 bg-blue-50 text-blue-600 rounded-xl">
                     <Activity size={26} />
@@ -469,9 +504,11 @@ export default function AdminDashboard() {
 
               </div>
 
+
+
               {/* Map & Live River Monitoring Split */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* Leaflet Map Panel */}
                 <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[520px]">
                   <div className="flex justify-between items-center mb-4">
@@ -479,17 +516,17 @@ export default function AdminDashboard() {
                       <h3 className="font-bold text-lg text-slate-800">DMC Operational Flood Map</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Real-time status of stations, reports and shelters in Sri Lanka</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveTab("map")}
                       className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                     >
                       Fullscreen Map <ExternalLink size={12} />
                     </button>
                   </div>
-                  
+
                   <div className="flex-1 bg-slate-50 rounded-xl overflow-hidden relative">
-                    <MapView 
-                      stationsData={stationsData} 
+                    <MapView
+                      stationsData={stationsData}
                       citizenReports={citizenReports}
                       onSelectStation={handleSelectStationOnMap}
                       selectedLocation={selectedLocation}
@@ -505,7 +542,7 @@ export default function AdminDashboard() {
                       <h3 className="font-bold text-lg text-slate-800">Live Station Feeds</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Current vs Predicted water levels (Random Forest model)</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveTab("monitoring")}
                       className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                     >
@@ -527,12 +564,11 @@ export default function AdminDashboard() {
                       </div>
                     ) : (
                       filteredStations.slice(0, 8).map((station) => (
-                        <div 
+                        <div
                           key={station.station}
                           onClick={() => handleSelectStationOnMap(station)}
-                          className={`p-4 bg-slate-50 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer rounded-xl transition duration-200 flex items-center justify-between ${
-                            selectedStation?.station === station.station ? "border-blue-500 bg-blue-50/30" : ""
-                          }`}
+                          className={`p-4 bg-slate-50 border border-slate-200 hover:border-blue-400 hover:bg-blue-50/20 cursor-pointer rounded-xl transition duration-200 flex items-center justify-between ${selectedStation?.station === station.station ? "border-blue-500 bg-blue-50/30" : ""
+                            }`}
                         >
                           <div>
                             <span className="font-bold text-slate-800 text-sm block">{station.station}</span>
@@ -548,11 +584,10 @@ export default function AdminDashboard() {
                               <span className="text-[10px] text-blue-400 block font-semibold">PREDICTED</span>
                               <strong className="text-blue-600 text-sm font-extrabold">{station.predicted_water_level}m</strong>
                             </div>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                              station.risk_level === "Very High" ? "bg-red-100 text-red-700" :
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${station.risk_level === "Very High" ? "bg-red-100 text-red-700" :
                               station.risk_level === "High" ? "bg-orange-100 text-orange-700" :
-                              station.risk_level === "Moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
-                            }`}>
+                                station.risk_level === "Moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                              }`}>
                               {station.risk_level}
                             </span>
                           </div>
@@ -564,9 +599,57 @@ export default function AdminDashboard() {
 
               </div>
 
+              {/* PRIORITY AREAS PANEL */}
+              <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse inline-block"></span>
+                      Priority Response Areas
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Areas with High or Very High predicted flood risk requiring prioritised attention. Sorted by severity. Supports response resource coordination.</p>
+                  </div>
+                  <span className="text-xs bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full">{priorityAreas.length} areas flagged</span>
+                </div>
+                {priorityAreas.length === 0 ? (
+                  <div className="flex items-center justify-center h-20 text-slate-400 text-sm font-semibold">
+                    <CheckCircle size={20} className="mr-2 text-green-500" /> No High or Very High risk areas currently detected.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {priorityAreas.map((area, idx) => (
+                      <div
+                        key={area.station + idx}
+                        className={`p-4 rounded-xl border flex items-start gap-3 ${area.risk_level === "Very High"
+                          ? "bg-red-50 border-red-300"
+                          : "bg-orange-50 border-orange-300"
+                          }`}
+                      >
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${area.risk_level === "Very High" ? "bg-red-200 text-red-800" : "bg-orange-200 text-orange-800"
+                          }`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-800 text-sm truncate">{area.station}</p>
+                          <span className={`text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded ${area.risk_level === "Very High" ? "bg-red-200 text-red-800" : "bg-orange-200 text-orange-800"
+                            }`}>{area.risk_level} RISK</span>
+                          <div className="mt-2 text-[10px] text-slate-500 space-y-0.5">
+                            <p>Predicted level: <strong className="text-slate-700">{area.predicted_water_level?.toFixed(2)}m</strong></p>
+                            {area.prediction_time && (
+                              <p>Data observation: <strong className="text-slate-600">{new Date(area.prediction_time).toLocaleString("en-LK", { timeZone: "Asia/Colombo", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}</strong></p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Bottom Row - Alerts & Rainfall Metrics Split */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
+
+
                 {/* Active Alerts List */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[380px]">
                   <div className="flex justify-between items-center mb-4">
@@ -574,7 +657,7 @@ export default function AdminDashboard() {
                       <h3 className="font-bold text-lg text-slate-800">Critical Alerts Feed</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Currently broadcasted early warnings</p>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setActiveTab("alerts")}
                       className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                     >
@@ -584,17 +667,15 @@ export default function AdminDashboard() {
 
                   <div className="flex-1 overflow-y-auto space-y-3">
                     {alerts.map((alert) => (
-                      <div 
+                      <div
                         key={alert.id}
-                        className={`p-4 rounded-xl border flex items-start gap-4 ${
-                          alert.severity === "Very High" ? "bg-red-50/50 border-red-200" :
+                        className={`p-4 rounded-xl border flex items-start gap-4 ${alert.severity === "Very High" ? "bg-red-50/50 border-red-200" :
                           alert.severity === "High" ? "bg-orange-50/50 border-orange-200" : "bg-yellow-50/50 border-yellow-200"
-                        }`}
+                          }`}
                       >
-                        <div className={`p-2 rounded-lg mt-0.5 ${
-                          alert.severity === "Very High" ? "bg-red-100 text-red-600" :
+                        <div className={`p-2 rounded-lg mt-0.5 ${alert.severity === "Very High" ? "bg-red-100 text-red-600" :
                           alert.severity === "High" ? "bg-orange-100 text-orange-600" : "bg-yellow-100 text-yellow-600"
-                        }`}>
+                          }`}>
                           <AlertOctagon size={18} />
                         </div>
                         <div className="flex-1">
@@ -618,7 +699,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex-1 flex items-end justify-between gap-2 mt-8 px-4 relative">
-                    
+
                     {/* Y-axis indicator lines */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 font-bold border-b border-slate-100 pb-8">
                       <div className="border-t border-dashed border-slate-100 w-full pt-0.5">100 mm</div>
@@ -634,7 +715,7 @@ export default function AdminDashboard() {
                       return (
                         <div key={station.station} className="flex-1 flex flex-col items-center gap-2 group z-10">
                           <div className="w-full relative h-40 bg-slate-50 rounded-lg flex items-end">
-                            <div 
+                            <div
                               style={{ height: `${percentage}%` }}
                               className="w-full bg-blue-500 group-hover:bg-blue-600 rounded-md transition-all duration-300 relative"
                             >
@@ -661,10 +742,10 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "prediction" && (
             <div className="space-y-6">
-              
+
               {/* Analytics Top */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* Model selection info */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
                   <div>
@@ -679,31 +760,28 @@ export default function AdminDashboard() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setSelectedModel("RF + GB Hybrid")}
-                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
-                            selectedModel === "RF + GB Hybrid"
-                              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                              : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${selectedModel === "RF + GB Hybrid"
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                            : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                            }`}
                         >
                           RF+GB Hybrid
                         </button>
                         <button
                           onClick={() => setSelectedModel("Random Forest")}
-                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
-                            selectedModel === "Random Forest"
-                              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                              : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${selectedModel === "Random Forest"
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                            : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                            }`}
                         >
                           Random Forest
                         </button>
                         <button
                           onClick={() => setSelectedModel("XGBoost")}
-                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${
-                            selectedModel === "XGBoost"
-                              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                              : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
-                          }`}
+                          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition duration-200 ${selectedModel === "XGBoost"
+                            ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                            : "bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"
+                            }`}
                         >
                           XGBoost
                         </button>
@@ -719,18 +797,16 @@ export default function AdminDashboard() {
 
                 {/* Model performance metrics cards */}
                 {Object.entries(ML_MODELS_PERFORMANCE).map(([key, value]) => (
-                  <div 
-                    key={key} 
-                    className={`bg-white p-6 rounded-2xl border transition duration-200 flex flex-col justify-between ${
-                      selectedModel === key ? "border-blue-500 shadow-md ring-1 ring-blue-500/30" : "border-slate-200 shadow-sm"
-                    }`}
+                  <div
+                    key={key}
+                    className={`bg-white p-6 rounded-2xl border transition duration-200 flex flex-col justify-between ${selectedModel === key ? "border-blue-500 shadow-md ring-1 ring-blue-500/30" : "border-slate-200 shadow-sm"
+                      }`}
                   >
                     <div>
                       <div className="flex justify-between items-center">
                         <h4 className="font-bold text-slate-800 text-sm">{value.name}</h4>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          key === "Random Forest" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
-                        }`}>{value.status}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${key === "Random Forest" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+                          }`}>{value.status}</span>
                       </div>
                       <p className="text-xs text-slate-400 mt-2 leading-relaxed">{value.description}</p>
 
@@ -760,7 +836,7 @@ export default function AdminDashboard() {
 
               {/* Prediction Table & Actual vs Predicted Comparison Chart */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* SVG Prediction Trend Chart */}
                 <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
                   <div>
@@ -769,7 +845,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="flex-1 flex items-end justify-between gap-6 mt-12 px-6 relative">
-                    
+
                     {/* Axis indicators */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 font-bold border-b border-slate-100 pb-8">
                       <div className="border-t border-dashed border-slate-100 w-full pt-0.5">12.0 m (Major Limit)</div>
@@ -787,7 +863,7 @@ export default function AdminDashboard() {
                         <div key={station.station} className="flex-1 flex flex-col items-center gap-2 group z-10">
                           <div className="w-full flex items-end justify-center gap-1.5 h-44 bg-slate-50/50 rounded-xl p-1">
                             {/* Actual column */}
-                            <div 
+                            <div
                               style={{ height: `${actualHeight}%` }}
                               className="w-4 bg-slate-300 group-hover:bg-slate-400 rounded-t-sm transition-all duration-300 relative"
                             >
@@ -796,7 +872,7 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                             {/* Predicted column */}
-                            <div 
+                            <div
                               style={{ height: `${predictedHeight}%` }}
                               className="w-4 bg-blue-500 group-hover:bg-blue-600 rounded-t-sm transition-all duration-300 relative"
                             >
@@ -828,7 +904,7 @@ export default function AdminDashboard() {
                   <div>
                     <h3 className="font-bold text-lg text-slate-800">Prediction Engine Details</h3>
                     <p className="text-xs text-slate-400 mt-0.5">How the ML model calculates predictions</p>
-                    
+
                     <div className="mt-6 space-y-4 text-xs text-slate-600 leading-relaxed">
                       <p>
                         <strong>1. Feature Input:</strong> Receives current levels, rolling means, rainfall levels (12h), and time parameters.
@@ -860,7 +936,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "monitoring" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-              
+
               {/* Header and filters */}
               <div className="p-6 border-b border-slate-200 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1 relative">
@@ -951,11 +1027,10 @@ export default function AdminDashboard() {
                           <td className="py-4 px-6 text-center text-slate-400">{station.alert_level || "--"}m</td>
                           <td className="py-4 px-6 text-center text-slate-400">{station.major_flood_level || "--"}m</td>
                           <td className="py-4 px-6 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold inline-block ${
-                              station.risk_level === "Very High" ? "bg-red-100 text-red-700" :
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold inline-block ${station.risk_level === "Very High" ? "bg-red-100 text-red-700" :
                               station.risk_level === "High" ? "bg-orange-100 text-orange-700" :
-                              station.risk_level === "Moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
-                            }`}>
+                                station.risk_level === "Moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                              }`}>
                               {station.risk_level}
                             </span>
                           </td>
@@ -985,7 +1060,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "rainfall" && (
             <div className="space-y-6">
-              
+
               {/* Rainfall Grid */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
@@ -1016,12 +1091,16 @@ export default function AdminDashboard() {
               TAB: GIS RISK MAP
               ====================================================================== */}
           {activeTab === "map" && (
+
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[calc(100vh-140px)]">
+
+
               <div className="flex justify-between items-center mb-4 shrink-0">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">GIS Flood Risk Map — Sri Lanka Command</h3>
                   <p className="text-xs text-slate-400 mt-0.5">Comprehensive view of river stations, shelters, and citizen incidents</p>
                 </div>
+
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
@@ -1038,9 +1117,14 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+
+
+
               <div className="flex-1 bg-slate-50 rounded-xl overflow-hidden relative">
-                <MapView 
-                  stationsData={stationsData} 
+
+
+                <MapView
+                  stationsData={stationsData}
                   citizenReports={citizenReports}
                   onSelectStation={handleSelectStationOnMap}
                   selectedLocation={selectedLocation}
@@ -1055,7 +1139,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "alerts" && (
             <div className="space-y-6">
-              
+
               {/* Header card with action */}
               <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
@@ -1073,7 +1157,7 @@ export default function AdminDashboard() {
               {/* Alerts List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {alerts.map((alert) => (
-                  <div 
+                  <div
                     key={alert.id}
                     className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between"
                   >
@@ -1083,10 +1167,9 @@ export default function AdminDashboard() {
                           <h4 className="font-black text-slate-800 text-base">{alert.title}</h4>
                           <span className="text-[10px] text-slate-400 font-bold block mt-0.5">ID: {alert.id} • Issued: {new Date(alert.time).toLocaleDateString()}</span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                          alert.severity === "Very High" ? "bg-red-100 text-red-700" :
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${alert.severity === "Very High" ? "bg-red-100 text-red-700" :
                           alert.severity === "High" ? "bg-orange-100 text-orange-700" : "bg-yellow-100 text-yellow-700"
-                        }`}>
+                          }`}>
                           {alert.severity} Risk
                         </span>
                       </div>
@@ -1128,7 +1211,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "reports" && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-              
+
               <div className="p-6 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-bold text-lg text-slate-800">Incoming Citizen Incidents Feed</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Validate reports submitted by the public for authority coordination</p>
@@ -1162,11 +1245,10 @@ export default function AdminDashboard() {
                           <td className="py-4.5 px-6 font-extrabold text-slate-800">{report.report_type}</td>
                           <td className="py-4.5 px-6 text-xs text-slate-500 font-semibold">{report.latitude.toFixed(4)}, {report.longitude.toFixed(4)}</td>
                           <td className="py-4.5 px-6 text-center">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                              report.severity === "critical" ? "bg-red-100 text-red-700" :
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${report.severity === "critical" ? "bg-red-100 text-red-700" :
                               report.severity === "severe" ? "bg-orange-100 text-orange-700" :
-                              report.severity === "moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
-                            }`}>
+                                report.severity === "moderate" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                              }`}>
                               {report.severity}
                             </span>
                           </td>
@@ -1175,17 +1257,16 @@ export default function AdminDashboard() {
                             {new Date(report.submitted_at).toLocaleDateString()} {new Date(report.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </td>
                           <td className="py-4.5 px-6 text-center">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              report.status === "new" ? "bg-blue-100 text-blue-700" :
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${report.status === "new" ? "bg-blue-100 text-blue-700" :
                               report.status === "verified" ? "bg-amber-100 text-amber-700" :
-                              report.status === "dispatched" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
-                            }`}>
+                                report.status === "dispatched" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"
+                              }`}>
                               {report.status}
                             </span>
                           </td>
                           <td className="py-4.5 px-6 text-right space-x-2">
                             {report.status === "new" && (
-                              <button 
+                              <button
                                 onClick={() => handleUpdateReportStatus(report.id, "verified")}
                                 className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-amber-200 transition"
                               >
@@ -1193,7 +1274,7 @@ export default function AdminDashboard() {
                               </button>
                             )}
                             {report.status === "verified" && (
-                              <button 
+                              <button
                                 onClick={() => handleUpdateReportStatus(report.id, "dispatched")}
                                 className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-purple-200 transition"
                               >
@@ -1201,7 +1282,7 @@ export default function AdminDashboard() {
                               </button>
                             )}
                             {report.status === "dispatched" && (
-                              <button 
+                              <button
                                 onClick={() => handleUpdateReportStatus(report.id, "resolved")}
                                 className="bg-green-50 hover:bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-green-200 transition"
                               >
@@ -1234,7 +1315,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "shelters" && (
             <div className="space-y-6">
-              
+
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-lg text-slate-800">DMC Shelter Capacity Audit</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Manage temporary relief shelter populations and availability metrics</p>
@@ -1251,10 +1332,9 @@ export default function AdminDashboard() {
                             <span className="text-[10px] text-blue-600 font-bold block uppercase tracking-wider">{shelter.id}</span>
                             <h4 className="font-bold text-slate-800 text-base mt-0.5">{shelter.name}</h4>
                           </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                            occupancyRate >= 90 ? "bg-red-100 text-red-700" :
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${occupancyRate >= 90 ? "bg-red-100 text-red-700" :
                             occupancyRate >= 60 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
-                          }`}>
+                            }`}>
                             {occupancyRate >= 90 ? "Full" : "Available"}
                           </span>
                         </div>
@@ -1268,12 +1348,11 @@ export default function AdminDashboard() {
                             <span>{shelter.occupancy} / {shelter.capacity} ({Math.round(occupancyRate)}%)</span>
                           </div>
                           <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              style={{ width: `${occupancyRate}%` }} 
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                occupancyRate >= 90 ? "bg-red-500" :
+                            <div
+                              style={{ width: `${occupancyRate}%` }}
+                              className={`h-full rounded-full transition-all duration-300 ${occupancyRate >= 90 ? "bg-red-500" :
                                 occupancyRate >= 60 ? "bg-amber-500" : "bg-green-500"
-                              }`}
+                                }`}
                             ></div>
                           </div>
                         </div>
@@ -1318,7 +1397,7 @@ export default function AdminDashboard() {
               ====================================================================== */}
           {activeTab === "resources" && (
             <div className="space-y-6">
-              
+
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <h3 className="font-bold text-lg text-slate-800">DMC Operational Resources Directory</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Mobilize relief units, medical teams, and inflatable rescue boats</p>
@@ -1343,10 +1422,9 @@ export default function AdminDashboard() {
                         <td className="py-4.5 px-6 font-bold text-slate-800">{res.name}</td>
                         <td className="py-4.5 px-6 text-xs text-slate-500 font-semibold">{res.type}</td>
                         <td className="py-4.5 px-6">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            res.status === "Available" ? "bg-green-100 text-green-700" :
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${res.status === "Available" ? "bg-green-100 text-green-700" :
                             res.status === "Busy" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
-                          }`}>
+                            }`}>
                             {res.status}
                           </span>
                         </td>
@@ -1386,7 +1464,7 @@ export default function AdminDashboard() {
               <h3 className="font-extrabold text-lg">Broadcast Warning Alert</h3>
               <p className="text-xs text-slate-400 mt-1">This alert will publish immediately to the public mobile application</p>
             </div>
-            
+
             <form onSubmit={handleCreateAlert} className="p-6 space-y-4">
               <div className="space-y-1">
                 <label className="block text-xs font-bold text-slate-500">Alert Title</label>

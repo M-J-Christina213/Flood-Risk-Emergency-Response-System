@@ -76,26 +76,21 @@ print("=" * 70)
 print("FLOOD RISK PREDICTION API")
 print("=" * 70)
 
-print("\nLoading models:")
+# DEPLOYMENT MODEL: Random Forest
+# Justification: Phase 2.5 validation showed RF has significantly higher
+# Very High Risk Recall (56.09%) vs Hybrid (45.12%).
+# The Hybrid's 0.29% RMSE improvement does not justify the loss of
+# severe-risk detection capability in an emergency-response context.
+# The Gradient Boosting model and hybrid weights are preserved in
+# outputs/ml/ for FYP comparison and academic documentation.
+
+print("\nLoading deployed model (Random Forest):")
 print(MODEL_RF_PATH)
-print(MODEL_GB_PATH)
 
 model_rf = joblib.load(MODEL_RF_PATH)
-model_gb = joblib.load(MODEL_GB_PATH)
 
-print("Models loaded successfully.")
-
-print("\nLoading hybrid weights:")
-print(WEIGHTS_PATH)
-try:
-    weights_df = pd.read_csv(WEIGHTS_PATH)
-    W_RF = float(weights_df["w_random_forest"].iloc[0])
-    W_GB = float(weights_df["w_gradient_boosting"].iloc[0])
-    print(f"Weights loaded -> RF: {W_RF:.6f}, GB: {W_GB:.6f}")
-except Exception as e:
-    print("Failed to load weights. Defaulting to 0.5/0.5", e)
-    W_RF = 0.503818
-    W_GB = 0.496182
+print("Random Forest model loaded successfully.")
+print("Deployment model: random_forest_fixed.pkl")
 
 
 # ============================================================
@@ -322,10 +317,7 @@ def predict_station(station_name: str):
         columns=FEATURES
     )
 
-    rf_pred = float(model_rf.predict(X)[0])
-    gb_pred = float(model_gb.predict(X)[0])
-    
-    prediction = (W_RF * rf_pred) + (W_GB * gb_pred)
+    prediction = float(model_rf.predict(X)[0])
 
     current_level = float(
         row["water_level_current"]
@@ -395,7 +387,9 @@ def predict_station(station_name: str):
             else float(major_level)
         ),
 
-        "model": "RF + GB Hybrid"
+        "model": "Random Forest",
+        "model_version": "random_forest_fixed.pkl",
+        "prediction_generated_at": datetime.now(COLOMBO_TZ).isoformat()
     }
 
 
@@ -409,7 +403,7 @@ def home():
     return {
         "system": "Flood Risk Prediction & Emergency Response System",
         "status": "running",
-        "model": "RF + GB Hybrid",
+        "model": "Random Forest (random_forest_fixed.pkl)",
         "purpose": "Next-step river water-level prediction"
     }
 

@@ -15,7 +15,10 @@ export interface StationPrediction {
   minor_flood_level?: number | null;
   major_flood_level?: number | null;
   model?: string;
+  model_version?: string;
+  prediction_generated_at?: string;
 }
+
 
 export interface CitizenReportPayload {
   latitude: number;

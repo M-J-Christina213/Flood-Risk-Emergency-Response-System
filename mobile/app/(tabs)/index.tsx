@@ -38,14 +38,32 @@ export default function HomeScreen() {
     try {
       const data = await fetchStationDetails("Hanwella");
       if (data) {
+        // Format last updated time in Asia/Colombo
+        const predTime = data.prediction_generated_at
+          ? new Date(data.prediction_generated_at).toLocaleString("en-LK", {
+              timeZone: "Asia/Colombo",
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true
+            })
+          : new Date().toLocaleString("en-LK", {
+              timeZone: "Asia/Colombo",
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true
+            });
         setRiskData((prev) => ({
           ...prev,
           station: data.station,
-          riskLevel: data.risk_level.toUpperCase().replace(' ', '_'),
+          riskLevel: data.risk_level.toUpperCase().replace(" ", "_"),
           waterLevel: data.current_water_level,
           predictedLevel: data.predicted_water_level,
           rainfall: data.rainfall_12hr,
-          lastUpdated: "Just now",
+          lastUpdated: predTime,
         }));
       }
     } catch (e) {
@@ -116,11 +134,33 @@ export default function HomeScreen() {
             <View style={styles.predictionBox}>
               <Waves size={20} color="rgba(255,255,255,0.9)" />
               <View style={styles.predictionTextContainer}>
-                <Text style={styles.predictionTextLabel}>ML Predicted Level (Next 12h)</Text>
+                <Text style={styles.predictionTextLabel}>Predicted River Level (Next Step)</Text>
                 <Text style={styles.predictionTextValue}>{riskData.predictedLevel}m</Text>
               </View>
               <Activity size={20} color="rgba(255,255,255,0.5)" />
             </View>
+
+            {/* Recommended Action */}
+            <View style={styles.actionBanner}>
+              <Text style={styles.actionBannerTitle}>
+                {riskData.riskLevel.includes("VERY") || riskData.riskLevel === "HIGH"
+                  ? "⚠ Recommended Action"
+                  : riskData.riskLevel === "MODERATE"
+                  ? "ℹ Stay Alert"
+                  : "✓ Situation Normal"}
+              </Text>
+              <Text style={styles.actionBannerText}>
+                {riskData.riskLevel.includes("VERY")
+                  ? "Follow official emergency guidance. Avoid flooded or low-lying areas immediately."
+                  : riskData.riskLevel === "HIGH"
+                  ? "Exercise caution near riverbanks. Monitor water levels and be prepared to evacuate if advised."
+                  : riskData.riskLevel === "MODERATE"
+                  ? "Water levels are elevated. Avoid riverbanks and monitor updates regularly."
+                  : "Water levels are within safe limits. No immediate action required."}
+              </Text>
+            </View>
+
+            <Text style={styles.lastUpdatedText}>Last updated: {riskData.lastUpdated}</Text>
           </View>
         </View>
 
@@ -365,6 +405,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
   },
+  actionBanner: {
+    marginTop: 16,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    width: "100%",
+  },
+  actionBannerTitle: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  actionBannerText: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 18,
+  },
+  lastUpdatedText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 12,
+    textAlign: "center",
+  },
+
   content: {
     paddingHorizontal: 24,
   },
