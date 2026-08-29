@@ -69,3 +69,15 @@ export async function submitCitizenReport(reportData) {
     return { success: false, error: error.message };
   }
 }
+
+export async function fetchPriorityAreas() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/priority-areas`);
+    if (!res.ok) throw new Error('Failed to fetch priority areas');
+    return await res.json();
+  } catch (error) {
+    console.error('fetchPriorityAreas failed:', error);
+    return { count: 0, priority_areas: [] };
+  }
+}
+
