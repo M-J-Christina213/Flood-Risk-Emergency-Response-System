@@ -20,7 +20,9 @@ import {
   Plus,
   Trash2,
   SlidersHorizontal,
-  Download
+  Download,
+  ShieldCheck,
+  Flame
 } from "lucide-react";
 import {
   fetchHealth,
@@ -1094,13 +1096,12 @@ export default function AdminDashboard() {
 
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[calc(100vh-140px)]">
 
-
+              {/* Map Header */}
               <div className="flex justify-between items-center mb-4 shrink-0">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">GIS Flood Risk Map — Sri Lanka Command</h3>
                   <p className="text-xs text-slate-400 mt-0.5">Comprehensive view of river stations, shelters, and citizen incidents</p>
                 </div>
-
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
@@ -1117,12 +1118,48 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Risk Breakdown Strip */}
+              <div className="grid grid-cols-4 gap-4 mb-4 shrink-0">
+                <div className="bg-green-50 p-5 rounded-2xl border border-green-200 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                  <div className="p-3.5 bg-green-100 text-green-600 rounded-xl shrink-0">
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div>
+                    <span className="text-xs text-green-600 font-bold uppercase tracking-wider">Low Risk</span>
+                    <strong className="block text-3xl font-extrabold text-green-700 mt-0.5">{loading ? "--" : lowCount}</strong>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 p-5 rounded-2xl border border-yellow-200 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                  <div className="p-3.5 bg-yellow-100 text-yellow-600 rounded-xl shrink-0">
+                    <Activity size={22} />
+                  </div>
+                  <div>
+                    <span className="text-xs text-yellow-600 font-bold uppercase tracking-wider">Moderate</span>
+                    <strong className="block text-3xl font-extrabold text-yellow-700 mt-0.5">{loading ? "--" : moderateCount}</strong>
+                  </div>
+                </div>
+                <div className="bg-orange-50 p-5 rounded-2xl border border-orange-200 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                  <div className="p-3.5 bg-orange-100 text-orange-600 rounded-xl shrink-0">
+                    <AlertOctagon size={22} />
+                  </div>
+                  <div>
+                    <span className="text-xs text-orange-600 font-bold uppercase tracking-wider">High Risk</span>
+                    <strong className="block text-3xl font-extrabold text-orange-700 mt-0.5">{loading ? "--" : highOnlyCount}</strong>
+                  </div>
+                </div>
+                <div className="bg-red-50 p-5 rounded-2xl border border-red-200 shadow-sm flex items-center gap-5 hover:shadow-md transition">
+                  <div className="p-3.5 bg-red-100 text-red-600 rounded-xl shrink-0">
+                    <Flame size={22} />
+                  </div>
+                  <div>
+                    <span className="text-xs text-red-600 font-bold uppercase tracking-wider">Very High</span>
+                    <strong className="block text-3xl font-extrabold text-red-700 mt-0.5">{loading ? "--" : veryHighCount}</strong>
+                  </div>
+                </div>
+              </div>
 
-
-
+              {/* Map */}
               <div className="flex-1 bg-slate-50 rounded-xl overflow-hidden relative">
-
-
                 <MapView
                   stationsData={stationsData}
                   citizenReports={citizenReports}
