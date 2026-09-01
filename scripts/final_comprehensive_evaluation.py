@@ -138,7 +138,42 @@ thresholds = risk_thresholds(actual)
 actual_risk = classify_risk(actual, thresholds)
 
 print(f"\nModels loaded : {list(active_models.keys())}")
-print(f"Test samples  : {len(predictions):,}")
+
+# Load full dataset to show train/test sizes
+full_data_path = ROOT / "outputs" / "ml_features_fixed.csv"
+if full_data_path.exists():
+    full_df = pd.read_csv(full_data_path)
+    full_df["datetime"] = pd.to_datetime(full_df["datetime"])
+    full_df = full_df.dropna(subset=["target_water_level"])
+    train_df = full_df[full_df["datetime"] < "2025-01-01"]
+    test_df = full_df[full_df["datetime"] >= "2025-01-01"]
+    
+    total_samples = len(full_df)
+    train_samples = len(train_df)
+    test_samples = len(test_df)
+    
+    features = [f for f in full_df.columns if f not in ["target_water_level", "datetime", "station", "river", "river_basin"]]
+    target = "target_water_level"
+else:
+    total_samples = "Unknown"
+    train_samples = "Unknown"
+    test_samples = len(predictions)
+    features = ["Unknown"]
+    target = "target_water_level"
+
+sep("MODEL TRAINING & DATASET SUMMARY")
+print(f"Total Dataset Size      : {total_samples:,} records")
+print(f"Training Set (Unseen)   : {train_samples:,} records (Used for model training)")
+print(f"Testing Set (Evaluated) : {test_samples:,} records (Kept unseen for testing)")
+print(f"Target Variable         : {target}")
+print(f"Number of Features      : {len(features)}")
+print(f"\nTraining Configurations (Tree-based ensemble models):")
+print(f"  - Random Forest     : n_estimators=200, max_depth=20")
+print(f"  - Gradient Boosting : n_estimators=300, max_depth=5, learning_rate=0.05")
+print(f"  - XGBoost           : n_estimators=300, max_depth=6, learning_rate=0.05")
+print(f"  - Extra Trees       : n_estimators=200, max_depth=20")
+print(f"  - RF+GB Hybrid      : Weighted ensemble of RF and GBR predictions")
+
 print(f"\nRisk thresholds (from test-set percentiles):")
 print(f"  Moderate  >= {thresholds['moderate']:.3f} m  (P60)")
 print(f"  High      >= {thresholds['high']:.3f} m  (P80)")

@@ -5,6 +5,7 @@ import { ReportOptionCard } from '@/components/ReportOptionCard';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { Waves, Car, Users, House, AlertTriangle, MapPin, CheckCircle2, ChevronRight, ChevronLeft, Camera } from 'lucide-react-native';
 import * as Location from 'expo-location';
+import { submitReportToBackend } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,8 @@ export default function ReportScreen() {
   const [severity, setSeverity] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false); // In a real app, use NetInfo
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reportId, setReportId] = useState<string>('PENDING');
 
   useEffect(() => {
     if (step === 2 && !location) {
@@ -75,8 +78,31 @@ export default function ReportScreen() {
     setStep(step - 1);
   };
 
-  const handleSubmit = () => {
-    setIsSubmitted(true);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
+    // Fallback if Location is not available
+    const lat = location?.coords?.latitude || 6.9271;
+    const lon = location?.coords?.longitude || 79.8612;
+
+    const payload = {
+      report_type: selectedIncident || 'other',
+      severity: (severity || 'moderate').toLowerCase() as any,
+      description: description,
+      latitude: lat,
+      longitude: lon,
+    };
+
+    const res = await submitReportToBackend(payload);
+    
+    setIsSubmitting(false);
+
+    if (res && res.success) {
+      setReportId(res.report.id);
+      setIsSubmitted(true);
+    } else {
+      Alert.alert('Submission Failed', 'Could not submit the report to the server. Please try again.');
+    }
   };
 
   const renderStepIndicator = () => {
@@ -105,7 +131,7 @@ export default function ReportScreen() {
           </Text>
           <View style={styles.reportIdBox}>
             <Text style={styles.reportIdLabel}>REPORT ID</Text>
-            <Text style={styles.reportIdValue}>FL-9284-A</Text>
+            <Text style={styles.reportIdValue}>#{reportId.slice(-6).toUpperCase()}</Text>
           </View>
           <TouchableOpacity 
             style={styles.doneButton}
@@ -114,6 +140,7 @@ export default function ReportScreen() {
               setSelectedIncident(null);
               setSeverity(null);
               setDescription('');
+              setReportId('PENDING');
               setIsSubmitted(false);
             }}
           >
@@ -259,8 +286,14 @@ export default function ReportScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.nextButton} onPress={step === 4 ? handleSubmit : handleNext}>
-          <Text style={styles.nextButtonText}>{step === 4 ? 'Submit Report' : 'Next Step'}</Text>
+        <TouchableOpacity 
+          style={[styles.nextButton, isSubmitting && { opacity: 0.7 }]} 
+          onPress={step === 4 ? handleSubmit : handleNext}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.nextButtonText}>
+            {step === 4 ? (isSubmitting ? 'Submitting...' : 'Submit Report') : 'Next Step'}
+          </Text>
           {step < 4 && <ChevronRight size={20} color={Colors.surface} />}
         </TouchableOpacity>
       </View>
