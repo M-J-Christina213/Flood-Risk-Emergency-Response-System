@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Bell, MapPin, Camera, TriangleAlert, CloudRain, Activity, ShieldAlert, Waves, ArrowRight } from "lucide-react-native";
-import { fetchStationDetails } from "@/services/api";
+import { fetchStationDetails, syncOfflineReports } from "@/services/api";
 import { NEARBY_SHELTERS_DATA } from "@/constants/data";
 import { Colors } from "@/constants/theme";
 
@@ -75,6 +75,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadData();
+    syncOfflineReports();
   }, []);
 
   const getRiskColor = (level: string) => {

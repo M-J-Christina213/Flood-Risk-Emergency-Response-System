@@ -81,3 +81,28 @@ export async function fetchPriorityAreas() {
   }
 }
 
+export async function fetchAlerts() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/alerts`);
+    if (!res.ok) throw new Error("Failed to fetch alerts");
+    return await res.json();
+  } catch (error) {
+    console.error("fetchAlerts failed:", error);
+    return { count: 0, alerts: [] };
+  }
+}
+
+export async function createAlert(alertData) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/alerts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(alertData),
+    });
+    if (!res.ok) throw new Error("Failed to create alert");
+    return await res.json();
+  } catch (error) {
+    console.error("createAlert failed:", error);
+    return { success: false, error: error.message };
+  }
+}

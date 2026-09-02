@@ -30,12 +30,13 @@ import {
   fetchStationInfo,
   fetchCitizenReports,
   submitCitizenReport,
-  fetchPriorityAreas
+  fetchPriorityAreas,
+  fetchAlerts,
+  createAlert
 } from "../services/api";
 import {
   STATION_COORDINATES,
   ML_MODELS_PERFORMANCE,
-  MOCK_ALERTS,
   MOCK_SHELTERS,
   MOCK_RESOURCES
 } from "../lib/constants";
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
   const [selectedZoom, setSelectedZoom] = useState(null);
 
   // Mock State Managers (for Admin operations in UI)
-  const [alerts, setAlerts] = useState(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState([]);
   const [shelters, setShelters] = useState(MOCK_SHELTERS);
   const [resources, setResources] = useState(MOCK_RESOURCES);
   const [selectedModel, setSelectedModel] = useState("Random Forest");
@@ -111,6 +112,10 @@ export default function AdminDashboard() {
       const priorityRes = await fetchPriorityAreas();
       setPriorityAreas(priorityRes.priority_areas || []);
 
+      // 6. Fetch Alerts
+      const alertsRes = await fetchAlerts();
+      setAlerts(alertsRes.alerts || []);
+
     } catch (err) {
       console.error("Dashboard data fetching failed:", err);
       setError("Failed to connect to the backend server. Please make sure the FastAPI server is running.");
@@ -147,23 +152,26 @@ export default function AdminDashboard() {
     );
   };
 
-  const handleCreateAlert = (e) => {
+  const handleCreateAlert = async (e) => {
     e.preventDefault();
     const alertObj = {
-      id: `AL${Date.now().toString().slice(-3)}`,
       title: newAlert.title,
       station: newAlert.station || "Manual Entry",
       river: newAlert.river,
       message: newAlert.message,
       severity: newAlert.severity,
-      time: new Date().toISOString(),
       location: newAlert.location,
       status: "Active"
     };
 
-    setAlerts([alertObj, ...alerts]);
-    setShowAlertModal(false);
-    setNewAlert({ title: "", station: "", river: "", message: "", severity: "High", location: "" });
+    const result = await createAlert(alertObj);
+    if (result.success) {
+      setAlerts([result.alert, ...alerts]);
+      setShowAlertModal(false);
+      setNewAlert({ title: "", station: "", river: "", message: "", severity: "High", location: "" });
+    } else {
+      alert("Failed to create alert.");
+    }
   };
 
   const handleDeleteAlert = (alertId) => {
@@ -244,8 +252,8 @@ export default function AdminDashboard() {
 
         {/* DMC Logo header */}
         <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-xl text-white animate-pulse">
-            <Radio size={24} />
+          <div className="p-2 bg-blue-600 rounded-xl text-white animate-pulse flex items-center justify-center w-10 h-10">
+            <img src="/dmc-logo.png" alt="DMC" className="w-100 h-100 object-contain drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; }} />
           </div>
           <div>
             <h1 className="font-extrabold text-white text-lg tracking-tight leading-tight">DMC Command Centre</h1>
@@ -579,6 +587,10 @@ export default function AdminDashboard() {
 
                           <div className="flex items-center gap-5 text-right">
                             <div>
+                              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Time</span>
+                              <strong className="text-slate-700 text-sm font-extrabold">{new Date(station.prediction_time || station.prediction_generated_at || station.datetime || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
+                            </div>
+                            <div>
                               <span className="text-[10px] text-slate-400 block font-semibold">CURRENT</span>
                               <strong className="text-slate-700 text-sm font-extrabold">{station.current_water_level}m</strong>
                             </div>
@@ -601,52 +613,7 @@ export default function AdminDashboard() {
 
               </div>
 
-              {/* PRIORITY AREAS PANEL */}
-              <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse inline-block"></span>
-                      Priority Response Areas
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Areas with High or Very High predicted flood risk requiring prioritised attention. Sorted by severity. Supports response resource coordination.</p>
-                  </div>
-                  <span className="text-xs bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full">{priorityAreas.length} areas flagged</span>
-                </div>
-                {priorityAreas.length === 0 ? (
-                  <div className="flex items-center justify-center h-20 text-slate-400 text-sm font-semibold">
-                    <CheckCircle size={20} className="mr-2 text-green-500" /> No High or Very High risk areas currently detected.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {priorityAreas.map((area, idx) => (
-                      <div
-                        key={area.station + idx}
-                        className={`p-4 rounded-xl border flex items-start gap-3 ${area.risk_level === "Very High"
-                          ? "bg-red-50 border-red-300"
-                          : "bg-orange-50 border-orange-300"
-                          }`}
-                      >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${area.risk_level === "Very High" ? "bg-red-200 text-red-800" : "bg-orange-200 text-orange-800"
-                          }`}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-slate-800 text-sm truncate">{area.station}</p>
-                          <span className={`text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded ${area.risk_level === "Very High" ? "bg-red-200 text-red-800" : "bg-orange-200 text-orange-800"
-                            }`}>{area.risk_level} RISK</span>
-                          <div className="mt-2 text-[10px] text-slate-500 space-y-0.5">
-                            <p>Predicted level: <strong className="text-slate-700">{area.predicted_water_level?.toFixed(2)}m</strong></p>
-                            {area.prediction_time && (
-                              <p>Data observation: <strong className="text-slate-600">{new Date(area.prediction_time).toLocaleString("en-LK", { timeZone: "Asia/Colombo", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}</strong></p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+
 
               {/* Bottom Row - Alerts & Rainfall Metrics Split */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, SafeAreaView, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { AlertCard, AlertSeverity } from '@/components/AlertCard';
-import { Bell } from 'lucide-react-native';
+import { Bell, RefreshCw } from 'lucide-react-native';
+import { fetchAlerts } from '@/services/api';
 
 const ALERTS_DATA = [
   {
@@ -46,7 +47,31 @@ const ALERTS_DATA = [
 export default function AlertsScreen() {
   const [filter, setFilter] = useState<'ALL' | 'WARNINGS' | 'INFORMATION'>('ALL');
 
-  const filteredAlerts = ALERTS_DATA.filter(alert => {
+  const [alertsData, setAlertsData] = useState<any[]>(ALERTS_DATA);
+  const [loading, setLoading] = useState(false);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    const data = await fetchAlerts();
+    if (data && data.length > 0) {
+      setAlertsData(data.map((alert: any) => ({
+        id: alert.id,
+        title: alert.title,
+        location: alert.location || alert.station || '',
+        message: alert.message,
+        severity: alert.severity.toUpperCase() as AlertSeverity,
+        timestamp: new Date(alert.time).toLocaleTimeString(),
+        type: 'WARNING'
+      })));
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const filteredAlerts = alertsData.filter(alert => {
     if (filter === 'ALL') return true;
     if (filter === 'WARNINGS') return alert.type === 'WARNING';
     if (filter === 'INFORMATION') return alert.type === 'INFORMATION';
@@ -60,6 +85,9 @@ export default function AlertsScreen() {
           <Bell size={24} color={Colors.text} />
           <Text style={styles.headerTitle}>Alerts & Warnings</Text>
         </View>
+        <TouchableOpacity onPress={loadAlerts}>
+          <RefreshCw size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.filterContainer}>
@@ -116,6 +144,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: Colors.surface,

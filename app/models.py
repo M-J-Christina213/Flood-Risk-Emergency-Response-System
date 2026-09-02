@@ -32,3 +32,16 @@ class PredictionLog(Base):
     major_flood_level = Column(Float, nullable=True)
     model = Column(String, nullable=False)
     logged_at = Column(String, default=lambda: datetime.now(timezone.utc).isoformat())
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    station = Column(String, nullable=True)
+    river = Column(String, nullable=True)
+    message = Column(String, nullable=False)
+    severity = Column(String, nullable=False)
+    location = Column(String, nullable=True)
+    status = Column(String, default="Active")
+    time = Column(String, default=lambda: datetime.now(timezone.utc).isoformat())

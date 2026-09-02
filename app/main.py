@@ -191,6 +191,15 @@ class ReportRequest(BaseModel):
 
     anonymous: bool = True
 
+class AlertRequest(BaseModel):
+    title: str
+    station: str = ""
+    river: str = ""
+    message: str
+    severity: str
+    location: str = ""
+    status: str = "Active"
+
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -656,6 +665,45 @@ def get_reports(
     return {
         "count": len(reports),
         "reports": reports
+    }
+
+# ============================================================
+# ALERTS
+# ============================================================
+
+@app.post("/alerts")
+def create_alert(
+    alert: AlertRequest,
+    db: Session = Depends(get_db)
+):
+    alert_id = "AL" + datetime.now(COLOMBO_TZ).strftime("%y%m%d%H%M%S")
+    db_alert = models.Alert(
+        id=alert_id,
+        title=alert.title,
+        station=alert.station,
+        river=alert.river,
+        message=alert.message,
+        severity=alert.severity,
+        location=alert.location,
+        status=alert.status,
+        time=datetime.now(COLOMBO_TZ).isoformat()
+    )
+    db.add(db_alert)
+    db.commit()
+    db.refresh(db_alert)
+    
+    return {
+        "success": True,
+        "message": "Alert created successfully.",
+        "alert": db_alert
+    }
+
+@app.get("/alerts")
+def get_alerts(db: Session = Depends(get_db)):
+    db_alerts = db.query(models.Alert).order_by(models.Alert.time.desc()).all()
+    return {
+        "count": len(db_alerts),
+        "alerts": db_alerts
     }
 
 # ============================================================
