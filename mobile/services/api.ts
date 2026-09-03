@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API Base URL for Mobile Application
 // Uses localhost / 127.0.0.1 for local dev/simulator, customizable for device testing
-const API_BASE_URL = "http://10.3.0.207:8000";
+const API_BASE_URL = "http://10.236.133.117:8000"; // Updated to current local WiFi IP
 
 export interface StationPrediction {
   station: string;

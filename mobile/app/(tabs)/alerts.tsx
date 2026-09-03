@@ -53,16 +53,25 @@ export default function AlertsScreen() {
   const loadAlerts = async () => {
     setLoading(true);
     const data = await fetchAlerts();
-    if (data && data.length > 0) {
-      setAlertsData(data.map((alert: any) => ({
-        id: alert.id,
-        title: alert.title,
-        location: alert.location || alert.station || '',
-        message: alert.message,
-        severity: alert.severity.toUpperCase() as AlertSeverity,
-        timestamp: new Date(alert.time).toLocaleTimeString(),
-        type: 'WARNING'
-      })));
+    if (data) {
+      if (data.length > 0) {
+        setAlertsData(data.map((alert: any) => {
+          const rawSeverity = alert.severity ? alert.severity.toUpperCase() : 'INFO';
+          const mappedSeverity = rawSeverity.includes('HIGH') ? 'HIGH' : rawSeverity;
+          
+          return {
+            id: alert.id,
+            title: alert.title,
+            location: alert.location || alert.station || '',
+            message: alert.message,
+            severity: mappedSeverity as AlertSeverity,
+            timestamp: new Date(alert.time).toLocaleTimeString(),
+            type: 'WARNING'
+          };
+        }));
+      } else {
+        setAlertsData([]);
+      }
     }
     setLoading(false);
   };
