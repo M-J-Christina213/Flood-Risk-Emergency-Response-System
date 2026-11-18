@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, SafeAreaView, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, SafeAreaView, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import AccountPanel from '@/components/AccountPanel';
 import { Colors } from '@/constants/theme';
 import { User, MapPin, Bell, Users, HelpCircle, Globe, Info, Shield, ChevronRight } from 'lucide-react-native';
 
@@ -22,10 +23,12 @@ export default function MoreScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <AccountPanel />
         <View style={styles.menuContainer}>
           {MENU_ITEMS.map((item, index) => (
             <TouchableOpacity 
               key={item.id} 
+              onPress={() => Alert.alert('Prototype option', 'Account and notification controls are above. This menu option is not implemented.')}
               style={[
                 styles.menuItem,
                 index === MENU_ITEMS.length - 1 && styles.menuItemLast

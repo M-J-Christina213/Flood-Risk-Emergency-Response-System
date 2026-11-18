@@ -6,3 +6,7 @@ scikit-learn
 xgboost
 pydantic
 sqlalchemy
+pandas
+tzdata
+pdfplumber
+matplotlib

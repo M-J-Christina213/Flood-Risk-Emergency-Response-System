@@ -1,0 +1,1408 @@
+{
+  "candidates": 2,
+  "folds": 3,
+  "jobs": 2,
+  "trees": 80,
+  "seed": 42,
+  "max_gap_hours": 72,
+  "boosting": true,
+  "run_id": "submission-01",
+  "dataset_sha256": "d72b4ba02aa75247c4bf4c2ff94d881b16c31d4b8a152fa549cf07729735bb5a",
+  "features": [
+    "water_level_current",
+    "water_level_previous",
+    "water_level_lag_1",
+    "water_level_lag_2",
+    "water_level_lag_3",
+    "rainfall_12hr",
+    "rainfall_lag_1",
+    "rainfall_lag_2",
+    "rainfall_rolling_3",
+    "water_level_rolling_3",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "alert_level",
+    "minor_flood_level",
+    "major_flood_level",
+    "rainfall_missing",
+    "rainfall_lag_1_missing",
+    "rainfall_lag_2_missing"
+  ],
+  "test_policy": "Historical cutoff retained; previously inspected. No prospective claim.",
+  "selection_rule": "Lowest mean fold RMSE; require improvement over persistence in every fold for promotion consideration. No automatic activation.",
+  "rainfall_strategies": [
+    "training-fold median plus source missingness",
+    "constant zero plus source missingness"
+  ],
+  "units": "levels m (known ft converted); reported rainfall assumed mm, requires source verification",
+  "gap_policy": "72h default engineering exclusion, configurable; not a scientifically established horizon",
+  "dependencies": {
+    "numpy": "2.1.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.5.3",
+    "xgboost": "3.4.1"
+  },
+  "environment": {
+    "python": "3.12.3 (tags/v3.12.3:f6650f9, Apr  9 2024, 14:05:25) [MSC v.1938 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel"
+  },
+  "candidate": "rf_1_constant",
+  "validation": {
+    "rmse": 0.6029811946050204,
+    "mae": 0.3512993357937367,
+    "r2": 0.9592346609809512,
+    "macro_f1": 0.7003451449640141,
+    "severe_underprediction_rate": 0.22567233761263614
+  },
+  "beats_persistence_all_folds": false,
+  "holdout": {
+    "rows": 1115,
+    "rmse": 0.8874418974347803,
+    "mae": 0.4422887778327286,
+    "r2": 0.935455568093249,
+    "macro_f1": 0.6965899954841723,
+    "per_class": {
+      "Low": {
+        "precision": 0.9555796316359697,
+        "recall": 0.9692307692307692,
+        "f1-score": 0.9623567921440261,
+        "support": 910.0
+      },
+      "Moderate": {
+        "precision": 0.5775862068965517,
+        "recall": 0.6442307692307693,
+        "f1-score": 0.6090909090909091,
+        "support": 104.0
+      },
+      "High": {
+        "precision": 0.660377358490566,
+        "recall": 0.5223880597014925,
+        "f1-score": 0.5833333333333334,
+        "support": 67.0
+      },
+      "Very High": {
+        "precision": 0.782608695652174,
+        "recall": 0.5294117647058824,
+        "f1-score": 0.631578947368421,
+        "support": 34.0
+      },
+      "accuracy": 0.8986547085201794,
+      "macro avg": {
+        "precision": 0.7440379731688154,
+        "recall": 0.6663153407172283,
+        "f1-score": 0.6965899954841723,
+        "support": 1115.0
+      },
+      "weighted avg": {
+        "precision": 0.8973097838358884,
+        "recall": 0.8986547085201794,
+        "f1-score": 0.8965445317850924,
+        "support": 1115.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        882,
+        25,
+        1,
+        2
+      ],
+      [
+        30,
+        67,
+        6,
+        1
+      ],
+      [
+        9,
+        21,
+        35,
+        2
+      ],
+      [
+        2,
+        3,
+        11,
+        18
+      ]
+    ],
+    "severe_support": 101,
+    "severe_underpredicted": 46,
+    "severe_underprediction_rate": 0.45544554455445546,
+    "persistence_rmse_improvement": -0.06793413244695767
+  },
+  "persistence_holdout": {
+    "rows": 1115,
+    "rmse": 0.8195077649878226,
+    "mae": 0.40329908520179375,
+    "r2": 0.9449591576855375,
+    "macro_f1": 0.7578781899215336,
+    "per_class": {
+      "Low": {
+        "precision": 0.9626373626373627,
+        "recall": 0.9626373626373627,
+        "f1-score": 0.9626373626373627,
+        "support": 910.0
+      },
+      "Moderate": {
+        "precision": 0.6095238095238096,
+        "recall": 0.6153846153846154,
+        "f1-score": 0.6124401913875598,
+        "support": 104.0
+      },
+      "High": {
+        "precision": 0.696969696969697,
+        "recall": 0.6865671641791045,
+        "f1-score": 0.6917293233082706,
+        "support": 67.0
+      },
+      "Very High": {
+        "precision": 0.7647058823529411,
+        "recall": 0.7647058823529411,
+        "f1-score": 0.7647058823529411,
+        "support": 34.0
+      },
+      "accuracy": 0.9076233183856502,
+      "macro avg": {
+        "precision": 0.7584591878709526,
+        "recall": 0.757323756138506,
+        "f1-score": 0.7578781899215336,
+        "support": 1115.0
+      },
+      "weighted avg": {
+        "precision": 0.9077017451905345,
+        "recall": 0.9076233183856502,
+        "f1-score": 0.9076588740501886,
+        "support": 1115.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        876,
+        30,
+        2,
+        2
+      ],
+      [
+        26,
+        64,
+        12,
+        2
+      ],
+      [
+        7,
+        10,
+        46,
+        4
+      ],
+      [
+        1,
+        1,
+        6,
+        26
+      ]
+    ],
+    "severe_support": 101,
+    "severe_underpredicted": 25,
+    "severe_underprediction_rate": 0.24752475247524752
+  },
+  "hybrid": {
+    "rf": "rf_1_constant",
+    "gb": "gradient_boosting_0_median",
+    "weights": [
+      0.5144490471955047,
+      0.4855509528044953
+    ],
+    "method": "inverse mean purged-validation RMSE",
+    "validation": {
+      "rows": 2392,
+      "rmse": 0.5979912147089105,
+      "mae": 0.3501890082216183,
+      "r2": 0.9667117084527445,
+      "macro_f1": 0.82595495902441,
+      "per_class": {
+        "Low": {
+          "precision": 0.9670494258612082,
+          "recall": 0.9812563323201621,
+          "f1-score": 0.9741010812169978,
+          "support": 1974.0
+        },
+        "Moderate": {
+          "precision": 0.6949152542372882,
+          "recall": 0.7008547008547008,
+          "f1-score": 0.6978723404255319,
+          "support": 234.0
+        },
+        "High": {
+          "precision": 0.8448275862068966,
+          "recall": 0.7153284671532847,
+          "f1-score": 0.7747035573122529,
+          "support": 137.0
+        },
+        "Very High": {
+          "precision": 0.972972972972973,
+          "recall": 0.7659574468085106,
+          "f1-score": 0.8571428571428571,
+          "support": 47.0
+        },
+        "accuracy": 0.9343645484949833,
+        "macro avg": {
+          "precision": 0.8699413098195914,
+          "recall": 0.7908492367841644,
+          "f1-score": 0.82595495902441,
+          "support": 2392.0
+        },
+        "weighted avg": {
+          "precision": 0.9335438315976692,
+          "recall": 0.9343645484949833,
+          "f1-score": 0.9333602690716641,
+          "support": 2392.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          1937,
+          37,
+          0,
+          0
+        ],
+        [
+          62,
+          164,
+          8,
+          0
+        ],
+        [
+          4,
+          34,
+          98,
+          1
+        ],
+        [
+          0,
+          1,
+          10,
+          36
+        ]
+      ],
+      "severe_support": 184,
+      "severe_underpredicted": 49,
+      "severe_underprediction_rate": 0.266304347826087
+    }
+  },
+  "breakdown": [
+    {
+      "group": "station",
+      "value": "Deraniyagala",
+      "rows": 94,
+      "rmse": 0.9212266611234023,
+      "mae": 0.4333108870571291,
+      "r2": 0.5936828559022518,
+      "macro_f1": 0.4111111111111111,
+      "per_class": {
+        "Low": {
+          "precision": 0.9777777777777777,
+          "recall": 0.9777777777777777,
+          "f1-score": 0.9777777777777777,
+          "support": 90.0
+        },
+        "Moderate": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 1.0
+        },
+        "Very High": {
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.6666666666666666,
+          "support": 3.0
+        },
+        "accuracy": 0.9574468085106383,
+        "macro avg": {
+          "precision": 0.4111111111111111,
+          "recall": 0.4111111111111111,
+          "f1-score": 0.4111111111111111,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.9574468085106383,
+          "recall": 0.9574468085106383,
+          "f1-score": 0.9574468085106383,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          88,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          2
+        ]
+      ],
+      "severe_support": 4,
+      "severe_underpredicted": 2,
+      "severe_underprediction_rate": 0.5
+    },
+    {
+      "group": "station",
+      "value": "Ellagawa",
+      "rows": 87,
+      "rmse": 0.8370012657759108,
+      "mae": 0.5168506053048061,
+      "r2": 0.7462025141765336,
+      "macro_f1": 0.36882716049382713,
+      "per_class": {
+        "Low": {
+          "precision": 0.9634146341463414,
+          "recall": 0.9875,
+          "f1-score": 0.9753086419753086,
+          "support": 80.0
+        },
+        "Moderate": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 3.0
+        },
+        "High": {
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1-score": 0.5,
+          "support": 4.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "accuracy": 0.9310344827586207,
+        "macro avg": {
+          "precision": 0.36585365853658536,
+          "recall": 0.371875,
+          "f1-score": 0.36882716049382713,
+          "support": 87.0
+        },
+        "weighted avg": {
+          "precision": 0.9088870199046817,
+          "recall": 0.9310344827586207,
+          "f1-score": 0.919824038597985,
+          "support": 87.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          79,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          2,
+          0
+        ],
+        [
+          2,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "severe_support": 4,
+      "severe_underpredicted": 2,
+      "severe_underprediction_rate": 0.5
+    },
+    {
+      "group": "station",
+      "value": "Glencourse",
+      "rows": 94,
+      "rmse": 2.049631752642033,
+      "mae": 1.046578526430178,
+      "r2": 0.5601386234430017,
+      "macro_f1": 0.34404761904761905,
+      "per_class": {
+        "Low": {
+          "precision": 0.9647058823529412,
+          "recall": 0.9879518072289156,
+          "f1-score": 0.9761904761904762,
+          "support": 83.0
+        },
+        "Moderate": {
+          "precision": 0.3333333333333333,
+          "recall": 0.5,
+          "f1-score": 0.4,
+          "support": 4.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 7.0
+        },
+        "accuracy": 0.8936170212765957,
+        "macro avg": {
+          "precision": 0.32450980392156864,
+          "recall": 0.3719879518072289,
+          "f1-score": 0.34404761904761905,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.8659991656236963,
+          "recall": 0.8936170212765957,
+          "f1-score": 0.8789766970618034,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          82,
+          1,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          3,
+          3,
+          0
+        ]
+      ],
+      "severe_support": 7,
+      "severe_underpredicted": 7,
+      "severe_underprediction_rate": 1.0
+    },
+    {
+      "group": "station",
+      "value": "Hanwella",
+      "rows": 94,
+      "rmse": 0.7867734512959458,
+      "mae": 0.5245697151350969,
+      "r2": 0.9106689353671287,
+      "macro_f1": 0.8990486689531276,
+      "per_class": {
+        "Low": {
+          "precision": 0.9873417721518988,
+          "recall": 1.0,
+          "f1-score": 0.9936305732484076,
+          "support": 78.0
+        },
+        "Moderate": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 3.0
+        },
+        "High": {
+          "precision": 0.8333333333333334,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.7692307692307693,
+          "support": 7.0
+        },
+        "Very High": {
+          "precision": 0.8333333333333334,
+          "recall": 0.8333333333333334,
+          "f1-score": 0.8333333333333334,
+          "support": 6.0
+        },
+        "accuracy": 0.9680851063829787,
+        "macro avg": {
+          "precision": 0.9135021097046414,
+          "recall": 0.886904761904762,
+          "f1-score": 0.8990486689531276,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.9664467187359728,
+          "recall": 0.9680851063829787,
+          "f1-score": 0.9668914904041616,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          78,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          5,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          5
+        ]
+      ],
+      "severe_support": 13,
+      "severe_underpredicted": 2,
+      "severe_underprediction_rate": 0.15384615384615385
+    },
+    {
+      "group": "station",
+      "value": "Holombuwa",
+      "rows": 91,
+      "rmse": 0.6831169866327625,
+      "mae": 0.33426479647380436,
+      "r2": 0.6669901820099589,
+      "macro_f1": 0.4925149700598802,
+      "per_class": {
+        "Low": {
+          "precision": 0.9529411764705882,
+          "recall": 0.9878048780487805,
+          "f1-score": 0.9700598802395209,
+          "support": 82.0
+        },
+        "Moderate": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 2.0
+        },
+        "High": {
+          "precision": 0.5,
+          "recall": 0.25,
+          "f1-score": 0.3333333333333333,
+          "support": 4.0
+        },
+        "Very High": {
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.6666666666666666,
+          "support": 3.0
+        },
+        "accuracy": 0.9230769230769231,
+        "macro avg": {
+          "precision": 0.5299019607843137,
+          "recall": 0.47611788617886175,
+          "f1-score": 0.4925149700598802,
+          "support": 91.0
+        },
+        "weighted avg": {
+          "precision": 0.902650290885585,
+          "recall": 0.9230769230769231,
+          "f1-score": 0.9107499287140006,
+          "support": 91.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          81,
+          0,
+          0,
+          1
+        ],
+        [
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          2
+        ]
+      ],
+      "severe_support": 7,
+      "severe_underpredicted": 4,
+      "severe_underprediction_rate": 0.5714285714285714
+    },
+    {
+      "group": "station",
+      "value": "Kalawellawa (Millakanda)",
+      "rows": 94,
+      "rmse": 0.6124674303505325,
+      "mae": 0.3991415165381461,
+      "r2": 0.8599806358291004,
+      "macro_f1": 0.5718157181571815,
+      "per_class": {
+        "Low": {
+          "precision": 0.9090909090909091,
+          "recall": 0.8695652173913043,
+          "f1-score": 0.8888888888888888,
+          "support": 46.0
+        },
+        "Moderate": {
+          "precision": 0.6,
+          "recall": 0.75,
+          "f1-score": 0.6666666666666666,
+          "support": 24.0
+        },
+        "High": {
+          "precision": 0.75,
+          "recall": 0.7142857142857143,
+          "f1-score": 0.7317073170731707,
+          "support": 21.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 3.0
+        },
+        "accuracy": 0.776595744680851,
+        "macro avg": {
+          "precision": 0.5647727272727272,
+          "recall": 0.5834627329192547,
+          "f1-score": 0.5718157181571815,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.7656189555125725,
+          "recall": 0.776595744680851,
+          "f1-score": 0.7686674739087815,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          40,
+          6,
+          0,
+          0
+        ],
+        [
+          4,
+          18,
+          2,
+          0
+        ],
+        [
+          0,
+          6,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          0
+        ]
+      ],
+      "severe_support": 24,
+      "severe_underpredicted": 9,
+      "severe_underprediction_rate": 0.375
+    },
+    {
+      "group": "station",
+      "value": "Kithulgala",
+      "rows": 94,
+      "rmse": 0.6025064568536321,
+      "mae": 0.3064836758601746,
+      "r2": 0.5844573748089068,
+      "macro_f1": 0.4745670995670996,
+      "per_class": {
+        "Low": {
+          "precision": 0.963855421686747,
+          "recall": 0.975609756097561,
+          "f1-score": 0.9696969696969697,
+          "support": 82.0
+        },
+        "Moderate": {
+          "precision": 0.42857142857142855,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.42857142857142855,
+          "support": 7.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 3.0
+        },
+        "Very High": {
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1-score": 0.5,
+          "support": 2.0
+        },
+        "accuracy": 0.8936170212765957,
+        "macro avg": {
+          "precision": 0.4731067125645439,
+          "recall": 0.4760452961672474,
+          "f1-score": 0.4745670995670996,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.8833632401948218,
+          "recall": 0.8936170212765957,
+          "f1-score": 0.8884590586718246,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          80,
+          2,
+          0,
+          0
+        ],
+        [
+          2,
+          3,
+          1,
+          1
+        ],
+        [
+          1,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "severe_support": 5,
+      "severe_underpredicted": 4,
+      "severe_underprediction_rate": 0.8
+    },
+    {
+      "group": "station",
+      "value": "Magura",
+      "rows": 94,
+      "rmse": 0.7436534949244862,
+      "mae": 0.4724326675576841,
+      "r2": 0.5698409624434971,
+      "macro_f1": 0.3922841864018335,
+      "per_class": {
+        "Low": {
+          "precision": 0.8875,
+          "recall": 0.9594594594594594,
+          "f1-score": 0.922077922077922,
+          "support": 74.0
+        },
+        "Moderate": {
+          "precision": 0.7857142857142857,
+          "recall": 0.55,
+          "f1-score": 0.6470588235294118,
+          "support": 20.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "accuracy": 0.8723404255319149,
+        "macro avg": {
+          "precision": 0.41830357142857144,
+          "recall": 0.37736486486486487,
+          "f1-score": 0.3922841864018335,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.8658434650455926,
+          "recall": 0.8723404255319149,
+          "f1-score": 0.86356322025909,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          71,
+          3,
+          0,
+          0
+        ],
+        [
+          9,
+          11,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "severe_support": 0,
+      "severe_underpredicted": 0,
+      "severe_underprediction_rate": null
+    },
+    {
+      "group": "station",
+      "value": "Nagalagam Street",
+      "rows": 94,
+      "rmse": 0.21602111353960518,
+      "mae": 0.15384161797363055,
+      "r2": 0.8725398521353025,
+      "macro_f1": 0.838707729468599,
+      "per_class": {
+        "Low": {
+          "precision": 0.9722222222222222,
+          "recall": 0.9722222222222222,
+          "f1-score": 0.9722222222222222,
+          "support": 72.0
+        },
+        "Moderate": {
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.6666666666666666,
+          "support": 3.0
+        },
+        "High": {
+          "precision": 0.75,
+          "recall": 0.8181818181818182,
+          "f1-score": 0.782608695652174,
+          "support": 11.0
+        },
+        "Very High": {
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1-score": 0.9333333333333333,
+          "support": 8.0
+        },
+        "accuracy": 0.9361702127659575,
+        "macro avg": {
+          "precision": 0.8472222222222222,
+          "recall": 0.8330176767676768,
+          "f1-score": 0.838707729468599,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.9388297872340425,
+          "recall": 0.9361702127659575,
+          "f1-score": 0.9369719395621338,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          70,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          2,
+          1,
+          0
+        ],
+        [
+          2,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          7
+        ]
+      ],
+      "severe_support": 19,
+      "severe_underpredicted": 3,
+      "severe_underprediction_rate": 0.15789473684210525
+    },
+    {
+      "group": "station",
+      "value": "Norwood",
+      "rows": 91,
+      "rmse": 0.2863319401304157,
+      "mae": 0.16100071087311388,
+      "r2": 0.7020797629289555,
+      "macro_f1": 0.4254449254449254,
+      "per_class": {
+        "Low": {
+          "precision": 0.961038961038961,
+          "recall": 0.961038961038961,
+          "f1-score": 0.961038961038961,
+          "support": 77.0
+        },
+        "Moderate": {
+          "precision": 0.7142857142857143,
+          "recall": 0.7692307692307693,
+          "f1-score": 0.7407407407407407,
+          "support": 13.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 1.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "accuracy": 0.9230769230769231,
+        "macro avg": {
+          "precision": 0.41883116883116883,
+          "recall": 0.4325674325674326,
+          "f1-score": 0.4254449254449254,
+          "support": 91.0
+        },
+        "weighted avg": {
+          "precision": 0.9152276295133439,
+          "recall": 0.9230769230769231,
+          "f1-score": 0.919006919006919,
+          "support": 91.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          74,
+          3,
+          0,
+          0
+        ],
+        [
+          3,
+          10,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "severe_support": 1,
+      "severe_underpredicted": 1,
+      "severe_underprediction_rate": 1.0
+    },
+    {
+      "group": "station",
+      "value": "Putupaula",
+      "rows": 94,
+      "rmse": 0.4139291196778573,
+      "mae": 0.26819225660591484,
+      "r2": 0.844186134031341,
+      "macro_f1": 0.37812187812187814,
+      "per_class": {
+        "Low": {
+          "precision": 0.974025974025974,
+          "recall": 0.974025974025974,
+          "f1-score": 0.974025974025974,
+          "support": 77.0
+        },
+        "Moderate": {
+          "precision": 0.4117647058823529,
+          "recall": 0.7777777777777778,
+          "f1-score": 0.5384615384615384,
+          "support": 9.0
+        },
+        "High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 8.0
+        },
+        "Very High": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "accuracy": 0.8723404255319149,
+        "macro avg": {
+          "precision": 0.34644766997708176,
+          "recall": 0.437950937950938,
+          "f1-score": 0.37812187812187814,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.8372966207759699,
+          "recall": 0.8723404255319149,
+          "f1-score": 0.8494271685761047,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          75,
+          2,
+          0,
+          0
+        ],
+        [
+          2,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "severe_support": 8,
+      "severe_underpredicted": 8,
+      "severe_underprediction_rate": 1.0
+    },
+    {
+      "group": "station",
+      "value": "Rathnapura",
+      "rows": 94,
+      "rmse": 0.9921591310256351,
+      "mae": 0.6839259820910321,
+      "r2": 0.7989114872707312,
+      "macro_f1": 0.650390551477508,
+      "per_class": {
+        "Low": {
+          "precision": 0.927536231884058,
+          "recall": 0.927536231884058,
+          "f1-score": 0.927536231884058,
+          "support": 69.0
+        },
+        "Moderate": {
+          "precision": 0.5789473684210527,
+          "recall": 0.6875,
+          "f1-score": 0.6285714285714286,
+          "support": 16.0
+        },
+        "High": {
+          "precision": 0.75,
+          "recall": 0.42857142857142855,
+          "f1-score": 0.5454545454545454,
+          "support": 7.0
+        },
+        "Very High": {
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1-score": 0.5,
+          "support": 2.0
+        },
+        "accuracy": 0.8404255319148937,
+        "macro avg": {
+          "precision": 0.6891209000762777,
+          "recall": 0.6359019151138716,
+          "f1-score": 0.650390551477508,
+          "support": 94.0
+        },
+        "weighted avg": {
+          "precision": 0.8458846584546473,
+          "recall": 0.8404255319148937,
+          "f1-score": 0.8390991986736667,
+          "support": 94.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          64,
+          5,
+          0,
+          0
+        ],
+        [
+          5,
+          11,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          3,
+          1
+        ],
+        [
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "severe_support": 9,
+      "severe_underpredicted": 4,
+      "severe_underprediction_rate": 0.4444444444444444
+    },
+    {
+      "group": "basin",
+      "value": "Kalu Ganga",
+      "rows": 463,
+      "rmse": 0.7447903395144465,
+      "mae": 0.4673716855378816,
+      "r2": 0.9057299141224469,
+      "macro_f1": 0.6077555186353434,
+      "per_class": {
+        "Low": {
+          "precision": 0.9346590909090909,
+          "recall": 0.9508670520231214,
+          "f1-score": 0.9426934097421203,
+          "support": 346.0
+        },
+        "Moderate": {
+          "precision": 0.5802469135802469,
+          "recall": 0.6527777777777778,
+          "f1-score": 0.6143790849673203,
+          "support": 72.0
+        },
+        "High": {
+          "precision": 0.7142857142857143,
+          "recall": 0.5,
+          "f1-score": 0.5882352941176471,
+          "support": 40.0
+        },
+        "Very High": {
+          "precision": 0.5,
+          "recall": 0.2,
+          "f1-score": 0.2857142857142857,
+          "support": 5.0
+        },
+        "accuracy": 0.857451403887689,
+        "macro avg": {
+          "precision": 0.682297929693763,
+          "recall": 0.5759112074502248,
+          "f1-score": 0.6077555186353434,
+          "support": 463.0
+        },
+        "weighted avg": {
+          "precision": 0.855812638884993,
+          "recall": 0.857451403887689,
+          "f1-score": 0.8539205120555033,
+          "support": 463.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          329,
+          17,
+          0,
+          0
+        ],
+        [
+          21,
+          47,
+          4,
+          0
+        ],
+        [
+          2,
+          17,
+          20,
+          1
+        ],
+        [
+          0,
+          0,
+          4,
+          1
+        ]
+      ],
+      "severe_support": 45,
+      "severe_underpredicted": 23,
+      "severe_underprediction_rate": 0.5111111111111111
+    },
+    {
+      "group": "basin",
+      "value": "Kelani Ganga",
+      "rows": 652,
+      "rmse": 0.9761651630039624,
+      "mae": 0.42447683570468286,
+      "r2": 0.941907827105622,
+      "macro_f1": 0.707096835375815,
+      "per_class": {
+        "Low": {
+          "precision": 0.968476357267951,
+          "recall": 0.9804964539007093,
+          "f1-score": 0.9744493392070485,
+          "support": 564.0
+        },
+        "Moderate": {
+          "precision": 0.5714285714285714,
+          "recall": 0.625,
+          "f1-score": 0.5970149253731343,
+          "support": 32.0
+        },
+        "High": {
+          "precision": 0.6,
+          "recall": 0.5555555555555556,
+          "f1-score": 0.5769230769230769,
+          "support": 27.0
+        },
+        "Very High": {
+          "precision": 0.8095238095238095,
+          "recall": 0.5862068965517241,
+          "f1-score": 0.68,
+          "support": 29.0
+        },
+        "accuracy": 0.9279141104294478,
+        "macro avg": {
+          "precision": 0.737357184555083,
+          "recall": 0.6868147265019973,
+          "f1-score": 0.707096835375815,
+          "support": 652.0
+        },
+        "weighted avg": {
+          "precision": 0.9266603838359344,
+          "recall": 0.9279141104294478,
+          "f1-score": 0.9263663006160103,
+          "support": 652.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          553,
+          8,
+          1,
+          2
+        ],
+        [
+          9,
+          20,
+          2,
+          1
+        ],
+        [
+          7,
+          4,
+          15,
+          1
+        ],
+        [
+          2,
+          3,
+          7,
+          17
+        ]
+      ],
+      "severe_support": 56,
+      "severe_underpredicted": 23,
+      "severe_underprediction_rate": 0.4107142857142857
+    }
+  ],
+  "train_rows": 3357,
+  "holdout_rows": 1115,
+  "training_period": [
+    "2022-08-01 18:30:00",
+    "2024-06-14 09:30:00"
+  ],
+  "forecast_horizon": "next recorded observation; variable; production target time unknown",
+  "feature_types": {
+    "water_level_current": "float64",
+    "water_level_previous": "float64",
+    "water_level_lag_1": "float64",
+    "water_level_lag_2": "float64",
+    "water_level_lag_3": "float64",
+    "rainfall_12hr": "float64",
+    "rainfall_lag_1": "float64",
+    "rainfall_lag_2": "float64",
+    "rainfall_rolling_3": "float64",
+    "water_level_rolling_3": "float64",
+    "hour_sin": "float64",
+    "hour_cos": "float64",
+    "month_sin": "float64",
+    "month_cos": "float64",
+    "alert_level": "float64",
+    "minor_flood_level": "float64",
+    "major_flood_level": "float64",
+    "rainfall_missing": "float64",
+    "rainfall_lag_1_missing": "float64",
+    "rainfall_lag_2_missing": "float64"
+  },
+  "elapsed_seconds": 81.65918690000035,
+  "activation": "NOT ACTIVATED; original RF preserved"
+}

@@ -24,3 +24,10 @@ outputs/ml/plots/
 # OS files
 .DS_Store
 Thumbs.db
+# Local supervisor demo copies, logs and browser profiles
+.demo/
+# Local credentials, transient logs, and runtime database copies
+.env
+.env.local
+research/verification/*.log
+research/verification/*.db

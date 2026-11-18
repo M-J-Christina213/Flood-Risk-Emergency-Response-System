@@ -1,0 +1,9 @@
+Flood_level/2026/June/2026-06-24_0030_Water_Level.pdf
+DATE : 24-Jun-2026 TIME : 12:30 AM
+Kelani Ganga Glencourse m 15.00 16.50 19.00 11.10 10.98 Normal 0.0
+
+Flood_level/2026/June/2026-06-24_0330_Water_Level.pdf
+DATE : 24-Jun-2026 TIME : 3:30 AM
+Kelani Ganga Glencourse m 15.00 16.50 19.00 0.97 0.95 Normal 0.0
+
+Source readings retained; reporting/datum anomaly requires official verification.

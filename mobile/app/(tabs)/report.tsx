@@ -37,6 +37,7 @@ export default function ReportScreen() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportId, setReportId] = useState<string>('PENDING');
+  const [requestId, setRequestId] = useState(() => `mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   useEffect(() => {
     if (step === 2 && !location) {
@@ -55,8 +56,7 @@ export default function ReportScreen() {
       let loc = await Location.getCurrentPositionAsync({});
       setLocation(loc);
       
-      // Simulate reverse geocoding
-      setTimeout(() => setAddress('Hanwella, Western Province (Estimated)'), 1000);
+      setAddress(`${loc.coords.latitude.toFixed(5)}, ${loc.coords.longitude.toFixed(5)}`);
     } catch (e) {
       setAddress('Could not fetch location automatically');
     }
@@ -79,11 +79,15 @@ export default function ReportScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!location) {
+      Alert.alert('Location required', 'Enable location permission and retry. No substitute coordinates will be submitted.');
+      return;
+    }
     setIsSubmitting(true);
     
     // Fallback if Location is not available
-    const lat = location?.coords?.latitude || 6.9271;
-    const lon = location?.coords?.longitude || 79.8612;
+    const lat = location.coords.latitude;
+    const lon = location.coords.longitude;
 
     const payload = {
       report_type: selectedIncident || 'other',
@@ -91,6 +95,7 @@ export default function ReportScreen() {
       description: description,
       latitude: lat,
       longitude: lon,
+      client_request_id: requestId,
     };
 
     const res = await submitReportToBackend(payload);
@@ -101,7 +106,8 @@ export default function ReportScreen() {
       setReportId(res.report.id);
       setIsSubmitted(true);
     } else {
-      Alert.alert('Submission Failed', 'Could not submit the report to the server. Please try again.');
+      setIsOffline(Boolean(res.offline));
+      Alert.alert(res.offline ? 'Saved on this device' : 'Submission failed', res.offline ? 'Queued for retry. It has not reached the server or emergency responders.' : (res.error || 'Please check the inputs and try again.'));
     }
   };
 
@@ -127,7 +133,7 @@ export default function ReportScreen() {
           <CheckCircle2 size={64} color={Colors.safe} />
           <Text style={styles.successTitle}>Report Submitted</Text>
           <Text style={styles.successText}>
-            Thank you. Your report has been submitted to emergency responders.
+            Your report is saved in the prototype for review. No emergency service has been dispatched.
           </Text>
           <View style={styles.reportIdBox}>
             <Text style={styles.reportIdLabel}>REPORT ID</Text>
@@ -141,6 +147,7 @@ export default function ReportScreen() {
               setSeverity(null);
               setDescription('');
               setReportId('PENDING');
+              setRequestId(`mobile-${Date.now()}-${Math.random().toString(36).slice(2)}`);
               setIsSubmitted(false);
             }}
           >

@@ -1,0 +1,5 @@
+station,datetime,unit,water_level_current,water_level_previous,rainfall_12hr,alert_level,minor_flood_level,major_flood_level
+Hanwella,2023-11-01T00:00:00,m,5.0,4.9,0,7,8,10
+Hanwella,2023-11-01T03:00:00,m,5.1,5.0,1,7,8,10
+Hanwella,2023-11-01T06:00:00,m,5.2,5.1,2,7,8,10
+Hanwella,2023-11-01T09:00:00,m,5.3,5.2,1,7,8,10

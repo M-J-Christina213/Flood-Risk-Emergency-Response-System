@@ -13,6 +13,7 @@ import { Colors } from '@/constants/theme';
 import { MapBottomSheet } from '@/components/MapBottomSheet';
 import { Layers, Crosshair, MapPin } from 'lucide-react-native';
 import { STATION_DATA, StationItem, NEARBY_SHELTERS_DATA, ShelterItem } from '@/constants/data';
+import { fetchStationDetails } from '@/services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,9 +22,22 @@ export default function MapScreen() {
   const [selectedStation, setSelectedStation] = useState<StationItem | null>(null);
   const [isBottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [stationData, setStationData] = useState<StationItem[]>([]);
+  const [notice, setNotice] = useState('Loading saved station observations…');
 
   useEffect(() => {
     setIsClient(true);
+    let active = true;
+    Promise.all(STATION_DATA.filter(s => s.station !== 'Dunamale').map(async s => {
+      const prediction = await fetchStationDetails(s.station);
+      return prediction ? { ...s, ...prediction } : null;
+    })).then(rows => {
+      if (active) {
+        setStationData(rows.filter((r): r is NonNullable<typeof r> => r !== null));
+        setNotice('Historical risk points at provisional coordinates, not inundation boundaries. Shelter markers are samples. Missing stations have no verified coordinates.');
+      }
+    }).catch(() => { if (active) setNotice('Disconnected: station data unavailable.'); });
+    return () => { active = false; };
   }, []);
 
   const initialRegion = {
@@ -60,7 +74,8 @@ export default function MapScreen() {
     const WebMap = require('@/components/WebMap').default;
     return (
       <SafeAreaView style={styles.container}>
-        <WebMap onMarkerPress={handleMarkerPress} />
+        <Text style={{padding:12}}>{notice}</Text>
+        <WebMap onMarkerPress={handleMarkerPress} stations={stationData} />
         {selectedStation && (
           <MapBottomSheet
             visible={isBottomSheetVisible}
@@ -69,9 +84,9 @@ export default function MapScreen() {
             riverName="Kelani Ganga"
             riskLevel={selectedStation.risk_level.toUpperCase().replace(' ', '_') as 'HIGH' | 'MODERATE' | 'LOW'}
             currentLevel={`${selectedStation.current_water_level} m`}
-            trend="RISING"
+            trend="UNKNOWN"
             predictedLevel={`${selectedStation.predicted_water_level} m`}
-            updatedTime="Just now"
+            updatedTime={selectedStation.observation_time || 'Unverified timestamp'}
             onViewDetails={() => setBottomSheetVisible(false)}
           />
         )}
@@ -93,6 +108,7 @@ export default function MapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Text style={{padding:12}}>{notice}</Text>
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -103,7 +119,7 @@ export default function MapScreen() {
         showsCompass={false}
       >
         {/* Render River Stations */}
-        {STATION_DATA.map((station: StationItem) => (
+        {stationData.map((station: StationItem) => (
           <Marker
             key={station.id}
             coordinate={{
@@ -132,7 +148,7 @@ export default function MapScreen() {
               longitude: shelter.lon,
             }}
             title={shelter.name}
-            description={`Capacity: ${shelter.capacity - shelter.occupancy} available`}
+            description="Sample shelter; availability unverified"
           >
             <View style={styles.shelterMarker}>
               <MapPin size={16} color="#fff" />
@@ -158,9 +174,9 @@ export default function MapScreen() {
           riverName="Kelani Ganga"
           riskLevel={selectedStation.risk_level.toUpperCase().replace(' ', '_') as 'HIGH' | 'MODERATE' | 'LOW'}
           currentLevel={`${selectedStation.current_water_level} m`}
-          trend="RISING"
+          trend="UNKNOWN"
           predictedLevel={`${selectedStation.predicted_water_level} m`}
-          updatedTime="Just now"
+          updatedTime={selectedStation.observation_time || 'Unverified timestamp'}
           onViewDetails={() => setBottomSheetVisible(false)}
         />
       )}

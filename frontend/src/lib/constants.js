@@ -31,26 +31,26 @@ export const MAP_DEFAULT_ZOOM = 8;
 // ML Performance Metrics
 export const ML_MODELS_PERFORMANCE = {
   "RF + GB Hybrid": {
-    name: "RF + GB Hybrid (Selected)",
+    name: "RF + GB Hybrid (Comparison)",
     mae: 0.403,
     rmse: 0.7423,
     r2: 0.9149,
-    status: "Active Deployment",
-    description: "Weighted hybrid model combining Random Forest and Gradient Boosting. Highest accuracy and robustness."
+    status: "Saved comparison",
+    description: "Weighted hybrid model combining Random Forest and Gradient Boosting. Saved evaluation; not used for API inference."
   },
   "Random Forest": {
-    name: "Random Forest (Comparison)",
+    name: "Random Forest (Deployed)",
     mae: 0.411,
     rmse: 0.7445,
     r2: 0.9144,
-    status: "Secondary Model",
+    status: "Active Deployment",
     description: "Robust ensemble method optimized with lag features. High stability in extreme values."
   },
   "XGBoost": {
     name: "XGBoost (Comparison)",
-    mae: 0.452,
-    rmse: 0.812,
-    r2: 0.887,
+    mae: 0.4135,
+    rmse: 0.7824,
+    r2: 0.9054,
     status: "Tertiary Model",
     description: "Gradient boosted tree model. Fast convergence, but slightly lower accuracy on lag structures."
   }

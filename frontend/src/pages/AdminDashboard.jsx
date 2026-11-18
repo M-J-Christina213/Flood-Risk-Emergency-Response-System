@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -9,11 +10,8 @@ import {
   Users,
   Home as HomeIcon,
   Search,
-  CheckCircle,
   AlertOctagon,
   LifeBuoy,
-  Settings,
-  Radio,
   ExternalLink,
   MapPin,
   RefreshCw,
@@ -29,10 +27,11 @@ import {
   fetchStations,
   fetchStationInfo,
   fetchCitizenReports,
-  submitCitizenReport,
   fetchPriorityAreas,
   fetchAlerts,
-  createAlert
+  createAlert,
+  updateReportStatus,
+  revokeAlert
 } from "../services/api";
 import {
   STATION_COORDINATES,
@@ -87,6 +86,7 @@ export default function AdminDashboard() {
       // 1. Fetch Health
       const health = await fetchHealth();
       setApiHealth(health);
+      if (health.status !== "healthy") throw new Error("API offline");
 
       // 2. Fetch Stations List
       const stationsListRes = await fetchStations();
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
 
       // 3. Fetch detailed data for each station
       const detailedData = [];
-      const stationsToFetch = stationsListRes.stations.slice(0, 15); // Load first 15 to keep dashboard responsive
+      const stationsToFetch = stationsListRes.stations; // Show every available station
 
       for (const stationName of stationsToFetch) {
         const info = await fetchStationInfo(stationName);
@@ -106,6 +106,7 @@ export default function AdminDashboard() {
 
       // 4. Fetch Citizen Reports
       const reportsRes = await fetchCitizenReports();
+      if (reportsRes.error) throw new Error(reportsRes.error);
       setCitizenReports(reportsRes.reports || []);
 
       // 5. Fetch Priority Areas
@@ -125,10 +126,10 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchData();
+    const initialFetch = setTimeout(fetchData, 0);
     // Live clock — updates every second
     const clockInterval = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(clockInterval);
+    return () => { clearTimeout(initialFetch); clearInterval(clockInterval); };
   }, []);
 
   const handleRefresh = () => {
@@ -144,12 +145,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUpdateReportStatus = (reportId, newStatus) => {
-    setCitizenReports(prevReports =>
-      prevReports.map(report =>
-        report.id === reportId ? { ...report, status: newStatus } : report
-      )
-    );
+  const handleUpdateReportStatus = async (reportId, newStatus) => {
+    try {
+      const result = await updateReportStatus(reportId, newStatus);
+      setCitizenReports(reports => reports.map(report =>
+        report.id === reportId ? { ...report, status: result.report.status } : report
+      ));
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleCreateAlert = async (e) => {
@@ -174,8 +178,13 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteAlert = (alertId) => {
-    setAlerts(alerts.filter(alert => alert.id !== alertId));
+  const handleDeleteAlert = async (alertId) => {
+    try {
+      await revokeAlert(alertId);
+      setAlerts(alerts => alerts.map(alert => alert.id === alertId ? { ...alert, status: "Revoked" } : alert));
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleUpdateShelterOccupancy = (shelterId, increment) => {
@@ -256,7 +265,7 @@ export default function AdminDashboard() {
             <img src="/dmc-logo.png" alt="DMC" className="w-100 h-100 object-contain drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; }} />
           </div>
           <div>
-            <h1 className="font-extrabold text-white text-lg tracking-tight leading-tight">DMC Command Centre</h1>
+            <h1 className="font-extrabold text-white text-lg tracking-tight leading-tight">FYP Command Centre</h1>
             <span className="text-xs text-slate-500 font-semibold tracking-wider uppercase">Sri Lanka Flood Response</span>
           </div>
         </div>
@@ -293,7 +302,7 @@ export default function AdminDashboard() {
               }`}
           >
             <Activity size={20} />
-            <span>Live River Monitoring</span>
+            <span>Historical River Monitoring</span>
           </button>
 
           <button
@@ -392,7 +401,7 @@ export default function AdminDashboard() {
             <span>Stations served:</span>
             <span className="text-slate-300 font-bold">{apiHealth.stations || "55"}</span>
           </div>
-          <p className="text-[10px] text-slate-600 text-center pt-2">© 2026 Disaster Management Center</p>
+          <p className="text-[10px] text-slate-600 text-center pt-2">FYP supervisor prototype</p>
         </div>
 
       </aside>
@@ -406,7 +415,7 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2.5">
               {activeTab === "overview" && "Dashboard Overview"}
               {activeTab === "prediction" && "Flood Risk Prediction"}
-              {activeTab === "monitoring" && "Live River Monitoring"}
+              {activeTab === "monitoring" && "Historical River Monitoring"}
               {activeTab === "rainfall" && "Rainfall Monitoring"}
               {activeTab === "map" && "GIS Flood Risk Map"}
               {activeTab === "alerts" && "Emergency Alerts Management"}
@@ -428,7 +437,7 @@ export default function AdminDashboard() {
               className="p-2.5 text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:text-slate-800 rounded-xl transition duration-200 flex items-center gap-1.5 text-sm font-semibold"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              <span>Sync Live Data</span>
+              <span>Refresh Historical Data</span>
             </button>
             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
               <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-sm shadow-sm">
@@ -445,11 +454,16 @@ export default function AdminDashboard() {
         {/* CENTRAL SCREEN AREA */}
         <div className="flex-1 overflow-y-auto p-8 bg-[#f8fafc]">
 
+          <p role="note" className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+            Research prototype: legacy CSV snapshot latest observation {apiHealth.latest_observation || "loading"}. Station responses identify manual uploads or historical replay and freshness.
+            Random Forest inference. {stations.length} legacy station spellings across basins; project coverage is provisionally Kelani/Kalu. {priorityAreas.length} logged priority flags. Shelters and rescue resources are sample data; dispatch records a status only.
+          </p>
+          <nav className="mb-4 flex gap-5 font-semibold"><Link to="/operations">Report assignment, imports and model versions</Link><Link to="/account">Subscriptions and sign out</Link><Link to="/report">Public report form</Link></nav>
           {error && (
             <div className="mb-6 p-4.5 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium flex items-center gap-3.5 shadow-sm">
               <span className="text-xl">⚠</span>
               <div>
-                <p className="font-bold text-red-800">API Connection Offline</p>
+                <p className="font-bold text-red-800">Application Notice</p>
                 <p className="text-xs text-red-600 mt-0.5">{error}</p>
               </div>
             </div>
@@ -516,7 +530,7 @@ export default function AdminDashboard() {
 
 
 
-              {/* Map & Live River Monitoring Split */}
+              {/* Map & Historical River Monitoring Split */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* Leaflet Map Panel */}
@@ -524,7 +538,7 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <h3 className="font-bold text-lg text-slate-800">DMC Operational Flood Map</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">Real-time status of stations, reports and shelters in Sri Lanka</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Historical observations and citizen reports; shelters are demonstration data</p>
                     </div>
                     <button
                       onClick={() => setActiveTab("map")}
@@ -545,11 +559,11 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Live River Monitoring Table panel */}
+                {/* Historical River Monitoring Table panel */}
                 <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[520px]">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <h3 className="font-bold text-lg text-slate-800">Live Station Feeds</h3>
+                      <h3 className="font-bold text-lg text-slate-800">Saved Station Observations</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Current vs Predicted water levels (Random Forest model)</p>
                     </div>
                     <button
@@ -588,7 +602,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-5 text-right">
                             <div>
                               <span className="text-[10px] text-slate-400 block font-semibold uppercase">Time</span>
-                              <strong className="text-slate-700 text-sm font-extrabold">{new Date(station.prediction_time || station.prediction_generated_at || station.datetime || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
+                              <strong className="text-slate-700 text-sm font-extrabold">{new Date(station.datetime || station.prediction_time || station.prediction_generated_at || currentTime.toISOString()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>
                             </div>
                             <div>
                               <span className="text-[10px] text-slate-400 block font-semibold">CURRENT</span>
@@ -725,7 +739,7 @@ export default function AdminDashboard() {
                     </p>
 
                     <div className="mt-6 space-y-3">
-                      <label className="block text-xs font-bold text-slate-500">Current Model Target</label>
+                      <label className="block text-xs font-bold text-slate-500">Saved model comparison (inference uses Random Forest)</label>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setSelectedModel("RF + GB Hybrid")}
@@ -760,7 +774,7 @@ export default function AdminDashboard() {
 
                   <div className="mt-8 pt-4 border-t border-slate-100 text-xs text-slate-500 font-semibold flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping"></span>
-                    <span>Ready for next-hour predict trigger</span>
+                    <span>Predicts the next recorded observation; interval varies</span>
                   </div>
                 </div>
 
@@ -809,7 +823,7 @@ export default function AdminDashboard() {
                 {/* SVG Prediction Trend Chart */}
                 <div className="lg:col-span-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[400px]">
                   <div>
-                    <h3 className="font-bold text-lg text-slate-800">Actual vs Predicted Trend</h3>
+                    <h3 className="font-bold text-lg text-slate-800">Current vs Next Observation Forecast</h3>
                     <p className="text-xs text-slate-400 mt-0.5">Water level monitoring comparison (m) across stations</p>
                   </div>
 
@@ -817,9 +831,9 @@ export default function AdminDashboard() {
 
                     {/* Axis indicators */}
                     <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[9px] text-slate-400 font-bold border-b border-slate-100 pb-8">
-                      <div className="border-t border-dashed border-slate-100 w-full pt-0.5">12.0 m (Major Limit)</div>
+                      <div className="border-t border-dashed border-slate-100 w-full pt-0.5">12.0 m (chart scale)</div>
                       <div className="border-t border-dashed border-slate-100 w-full pt-0.5">8.0 m</div>
-                      <div className="border-t border-dashed border-slate-100 w-full pt-0.5 font-semibold text-yellow-600">4.0 m (Alert Limit)</div>
+                      <div className="border-t border-dashed border-slate-100 w-full pt-0.5 font-semibold text-yellow-600">4.0 m (chart scale)</div>
                       <div className="border-t border-dashed border-slate-100 w-full pt-0.5">0.0 m</div>
                     </div>
 
@@ -859,7 +873,7 @@ export default function AdminDashboard() {
                   <div className="flex justify-center gap-6 mt-4 text-[10px] font-bold text-slate-500">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-slate-300 rounded-sm"></div>
-                      <span>Actual Water Level</span>
+                      <span>Current Water Level</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
@@ -879,7 +893,7 @@ export default function AdminDashboard() {
                         <strong>1. Feature Input:</strong> Receives current levels, rolling means, rainfall levels (12h), and time parameters.
                       </p>
                       <p>
-                        <strong>2. Next-step forecasting:</strong> Random Forest model forecasts next-hour level.
+                        <strong>2. Next-step forecasting:</strong> Random Forest forecasts the next recorded observation; intervals vary.
                       </p>
                       <p>
                         <strong>3. Risk mapping:</strong> Classifies risk based on station-specific minor/major flood levels defined by Sri Lanka Irrigation Department.
@@ -1147,8 +1161,8 @@ export default function AdminDashboard() {
               {/* Header card with action */}
               <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-800">DMC Warning Broadcasts</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Broadcast localized early warnings to the public mobile application</p>
+                  <h3 className="font-bold text-lg text-slate-800">Prototype Warning Management</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Save prototype warnings for public apps to retrieve on refresh</p>
                 </div>
                 <button
                   onClick={() => setShowAlertModal(true)}
@@ -1197,10 +1211,11 @@ export default function AdminDashboard() {
 
                     <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
                       <button
+                        disabled={alert.status === "Revoked"}
                         onClick={() => handleDeleteAlert(alert.id)}
                         className="text-xs font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-xl transition flex items-center gap-1.5"
                       >
-                        <Trash2 size={14} /> Revoke Warning
+                        <Trash2 size={14} /> {alert.status === "Revoked" ? "Revoked" : "Revoke Warning"}
                       </button>
                     </div>
                   </div>
@@ -1278,12 +1293,11 @@ export default function AdminDashboard() {
                               </button>
                             )}
                             {report.status === "verified" && (
-                              <button
-                                onClick={() => handleUpdateReportStatus(report.id, "dispatched")}
+                              <Link to="/operations"
                                 className="bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-purple-200 transition"
                               >
-                                Dispatch Rescue
-                              </button>
+                                Assign coordinator
+                              </Link>
                             )}
                             {report.status === "dispatched" && (
                               <button
@@ -1466,7 +1480,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-[#0f172a] text-white p-6">
               <h3 className="font-extrabold text-lg">Broadcast Warning Alert</h3>
-              <p className="text-xs text-slate-400 mt-1">This alert will publish immediately to the public mobile application</p>
+              <p className="text-xs text-slate-400 mt-1">Public apps retrieve this saved warning when refreshed; no push delivery.</p>
             </div>
 
             <form onSubmit={handleCreateAlert} className="p-6 space-y-4">

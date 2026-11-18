@@ -10,9 +10,9 @@ interface MapBottomSheetProps {
   onClose: () => void;
   stationName: string;
   riverName: string;
-  riskLevel: 'HIGH' | 'MODERATE' | 'LOW';
+  riskLevel: 'HIGH' | 'VERY_HIGH' | 'MODERATE' | 'LOW' | 'UNKNOWN';
   currentLevel: string;
-  trend: 'RISING' | 'FALLING' | 'STABLE';
+  trend: 'RISING' | 'FALLING' | 'STABLE' | 'UNKNOWN';
   predictedLevel: string;
   updatedTime: string;
   onViewDetails: () => void;
@@ -52,7 +52,8 @@ export const MapBottomSheet: React.FC<MapBottomSheetProps> = ({
 
   const getRiskColor = () => {
     switch (riskLevel) {
-      case 'HIGH': return Colors.emergency;
+      case 'HIGH':
+      case 'VERY_HIGH': return Colors.emergency;
       case 'MODERATE': return Colors.warning;
       case 'LOW': return Colors.safe;
       default: return Colors.primary;

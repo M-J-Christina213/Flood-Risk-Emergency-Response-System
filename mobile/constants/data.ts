@@ -3,9 +3,12 @@ export interface StationItem {
   station: string;
   latitude: number;
   longitude: number;
-  risk_level: 'High Risk' | 'Moderate Risk' | 'Low Risk';
+  risk_level: string;
   current_water_level: number;
   predicted_water_level: number;
+  observation_time?: string;
+  source_mode?: string;
+  freshness_status?: string;
 }
 
 export const STATION_DATA: StationItem[] = [

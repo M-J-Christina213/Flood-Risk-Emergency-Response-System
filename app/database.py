@@ -1,10 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from pathlib import Path
+import os
 
 # Path to the database file (stored in outputs so it is near other persistence)
 ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = ROOT / "outputs" / "app.db"
+DB_PATH = Path(os.environ.get("FLOOD_DB_PATH", str(ROOT / "outputs" / "app.db"))).resolve()
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 

@@ -1,0 +1,9 @@
+{
+  "definition": "Moderate confusion on frozen holdout, inclusive report thresholds, no threshold fitting",
+  "rows_either_moderate": 153,
+  "wrong_class": 86,
+  "errors_within_0_25m_of_threshold": 41,
+  "all_rows_within_0_25m": 127,
+  "event_definition": "At/above alert, separated by below-alert or >24h gap, at least 3 test examples; descriptive, not independent flood-event validation",
+  "events_with_sufficient_rows": 24
+}

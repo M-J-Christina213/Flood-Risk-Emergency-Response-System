@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import json
 import math
+import os
+import hashlib
 
 COLOMBO_TZ = ZoneInfo("Asia/Colombo")
 
@@ -16,11 +18,17 @@ import pandas as pd
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal
+from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from .database import engine, get_db
 from . import models
+from .auth import router as auth_router, staff, admin
+from .workflow_api import router as workflow_router
+from . import workflow
+from .ml_pipeline import FEATURES as SHARED_FEATURES, risk_label, STATIONS
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -88,6 +96,9 @@ print("\nLoading deployed model (Random Forest):")
 print(MODEL_RF_PATH)
 
 model_rf = joblib.load(MODEL_RF_PATH)
+MODEL_RF_SHA256 = hashlib.sha256(MODEL_RF_PATH.read_bytes()).hexdigest()
+# Single-row inference avoids starting a worker pool for every station request.
+model_rf.n_jobs = 1
 
 print("Random Forest model loaded successfully.")
 print("Deployment model: random_forest_fixed.pkl")
@@ -156,6 +167,10 @@ app = FastAPI(
     ),
     version="1.0.0"
 )
+app.include_router(auth_router)
+app.include_router(workflow_router)
+assert FEATURES == SHARED_FEATURES
+assert list(model_rf.feature_names_in_) == FEATURES
 
 
 # ============================================================
@@ -164,7 +179,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv('FLOOD_CORS_ORIGINS', 'http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:5174,http://localhost:5174').split(','),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -176,29 +191,30 @@ app.add_middleware(
 # ============================================================
 
 class LocationRequest(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
 
 
 class ReportRequest(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
 
-    report_type: str
-    description: str = ""
+    report_type: str = Field(min_length=1, max_length=100)
+    description: str = Field(default="", max_length=5000)
 
     severity: str = "medium"
 
     anonymous: bool = True
+    client_request_id: str | None = Field(default=None, min_length=8, max_length=100, pattern=r'^[A-Za-z0-9_-]+$')
 
 class AlertRequest(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=200)
     station: str = ""
     river: str = ""
-    message: str
+    message: str = Field(min_length=1, max_length=5000)
     severity: str
     location: str = ""
-    status: str = "Active"
+    status: Literal["Active", "Revoked"] = "Active"
 
 
 # ============================================================
@@ -228,37 +244,7 @@ def calculate_risk(
     major_flood_level
 ):
 
-    # Major flood threshold
-    if (
-        pd.notna(major_flood_level)
-        and predicted_level >= major_flood_level
-    ):
-        return "Very High"
-
-    # Minor flood threshold
-    if (
-        pd.notna(minor_flood_level)
-        and predicted_level >= minor_flood_level
-    ):
-        return "High"
-
-    # Alert threshold
-    if (
-        pd.notna(alert_level)
-        and predicted_level >= alert_level
-    ):
-        return "Moderate"
-
-    # If no thresholds are available,
-    # compare predicted/current level.
-
-    if predicted_level > current_level * 1.20:
-        return "Moderate"
-
-    if predicted_level > current_level * 1.05:
-        return "Low"
-
-    return "Low"
+    return risk_label(predicted_level, [alert_level, minor_flood_level, major_flood_level])
 
 
 def calculate_distance_km(
@@ -292,7 +278,22 @@ def calculate_distance_km(
     return radius * c
 
 
-def predict_station(station_name: str):
+def predict_station(station_name: str, db=None):
+
+    if db is not None:
+        # Replay remains a separate operations view; it cannot replace manual data.
+        events = [e for e in workflow.records(db, 'prediction_event')
+                  if e['station'].lower() == station_name.lower() and e.get('source_mode') == 'manual_upload']
+        if events:
+            latest = max(events, key=lambda e: e['observation_time'])
+            if latest['status'] != 'success':
+                raise HTTPException(422, {'message':'Latest imported observation failed inference', 'event':latest})
+            # Freshness ages even when nobody imports new data.
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(latest['observation_time'])).total_seconds()
+            fresh = 0 <= age <= float(os.getenv('FLOOD_MAX_AGE_SECONDS', '21600'))
+            latest['freshness_status'] = 'fresh' if fresh else 'stale'
+            latest['predictive_alert_eligible'] = fresh
+            return latest
 
     row = get_latest_station_data(station_name)
 
@@ -343,6 +344,7 @@ def predict_station(station_name: str):
         minor_level,
         major_level
     )
+    display_scale = 0.3048 if str(row['unit']) == 'ft' else 1.0
 
     return {
         "station": station_name,
@@ -362,12 +364,12 @@ def predict_station(station_name: str):
         ),
 
         "current_water_level": round(
-            current_level,
+            current_level * display_scale,
             3
         ),
 
         "predicted_water_level": round(
-            prediction,
+            prediction * display_scale,
             3
         ),
 
@@ -381,24 +383,35 @@ def predict_station(station_name: str):
         "alert_level": (
             None
             if pd.isna(alert_level)
-            else float(alert_level)
+            else float(alert_level) * display_scale
         ),
 
         "minor_flood_level": (
             None
             if pd.isna(minor_level)
-            else float(minor_level)
+            else float(minor_level) * display_scale
         ),
 
         "major_flood_level": (
             None
             if pd.isna(major_level)
-            else float(major_level)
+            else float(major_level) * display_scale
         ),
 
         "model": "Random Forest",
         "model_version": "random_forest_fixed.pkl",
-        "prediction_generated_at": datetime.now(COLOMBO_TZ).isoformat()
+        "prediction_generated_at": datetime.now(COLOMBO_TZ).isoformat(),
+        "observation_time": row["datetime"].tz_localize(COLOMBO_TZ).isoformat(),
+        "forecast_target_time": None,
+        "forecast_horizon": "next_observation_variable",
+        "source_mode": "historical_replay",
+        "freshness_status": "stale",
+        "predictive_alert_eligible": False,
+        "prototype": True,
+        "supported_project_coverage": station_name in STATIONS,
+        "input_validation": "legacy precomputed features; zero-filled rainfall and mixed units require review",
+        "level_unit": 'm' if str(row['unit']) in ['m','ft'] else 'unverified',
+        "source_level_unit": str(row['unit'])
     }
 
 
@@ -428,9 +441,11 @@ def health():
         "status": "healthy",
         "model_loaded": True,
         "dataset_loaded": True,
-        "stations": int(
-            df["station"].nunique()
-        )
+        "stations": int(df["station"].nunique()),
+        "data_source": "Historical CSV (not a live feed)",
+        "latest_observation": df["datetime"].max().isoformat(),
+        "model": "Random Forest",
+        "model_version": MODEL_RF_PATH.name
     }
 
 
@@ -462,11 +477,12 @@ def stations():
 
 @app.get("/station/{station_name}")
 def station_information(
-    station_name: str
+    station_name: str,
+    db: Session = Depends(get_db)
 ):
 
     return predict_station(
-        station_name
+        station_name, db
     )
 
 
@@ -481,7 +497,7 @@ def station_prediction(
 ):
 
     result = predict_station(
-        station_name
+        station_name, db
     )
 
     # Log prediction to DB
@@ -502,21 +518,7 @@ def station_prediction(
     db.add(log_entry)
     db.commit()
 
-    return {
-        "station": result["station"],
-        "current_water_level":
-            result["current_water_level"],
-        "predicted_water_level":
-            result["predicted_water_level"],
-        "rainfall_12hr":
-            result["rainfall_12hr"],
-        "risk_level":
-            result["risk_level"],
-        "prediction_time":
-            result["datetime"],
-        "model":
-            result["model"]
-    }
+    return dict(result, prediction_time=result["datetime"])
 
 
 # ============================================================
@@ -597,7 +599,13 @@ def submit_report(
     report: ReportRequest,
     db: Session = Depends(get_db)
 ):
-
+    request_key = 'report_request:' + report.client_request_id if report.client_request_id else None
+    if request_key:
+        prior = workflow.get(db, request_key)
+        if prior:
+            if prior['payload'] != report.model_dump():
+                raise HTTPException(409, 'Request ID already used with different report content')
+            return prior['response']
     report_id = (
         datetime.now(COLOMBO_TZ)
         .strftime("%Y%m%d%H%M%S%f")
@@ -616,8 +624,7 @@ def submit_report(
         status="new"
     )
     db.add(db_report)
-    db.commit()
-    db.refresh(db_report)
+    db.flush()
 
     report_dict = {
         "id": report_id,
@@ -631,11 +638,16 @@ def submit_report(
         "status": db_report.status
     }
 
-    return {
+    response = {
         "success": True,
         "message": "Flood report received.",
         "report": report_dict
     }
+    workflow.audit(db, report_id, 'public', 'submitted', {'status':'submitted'})
+    if request_key:
+        workflow.put(db, request_key, 'report_request', {'payload':report.model_dump(), 'response':response})
+    db.commit()
+    return response
 
 
 # ============================================================
@@ -644,7 +656,8 @@ def submit_report(
 
 @app.get("/reports")
 def get_reports(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user = Depends(staff)
 ):
 
     db_reports = db.query(models.Report).all()
@@ -674,9 +687,10 @@ def get_reports(
 @app.post("/alerts")
 def create_alert(
     alert: AlertRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user = Depends(staff)
 ):
-    alert_id = "AL" + datetime.now(COLOMBO_TZ).strftime("%y%m%d%H%M%S")
+    alert_id = "AL" + uuid4().hex
     db_alert = models.Alert(
         id=alert_id,
         title=alert.title,
@@ -689,6 +703,7 @@ def create_alert(
         time=datetime.now(COLOMBO_TZ).isoformat()
     )
     db.add(db_alert)
+    workflow.audit(db, alert_id, user.username, 'manual_alert_created', {'prototype':True})
     db.commit()
     db.refresh(db_alert)
     
@@ -701,9 +716,15 @@ def create_alert(
 @app.get("/alerts")
 def get_alerts(db: Session = Depends(get_db)):
     db_alerts = db.query(models.Alert).order_by(models.Alert.time.desc()).all()
+    alerts = []
+    for a in db_alerts:
+        metadata = workflow.get(db, 'alert_metadata:' + a.id) or {
+            'source_mode':'manual_warning', 'prototype':True, 'forecast_target_time':None,
+            'model_version':None, 'observation_time':None, 'simulation':False}
+        alerts.append({c.name:getattr(a,c.name) for c in a.__table__.columns} | {'metadata':metadata})
     return {
         "count": len(db_alerts),
-        "alerts": db_alerts
+        "alerts": alerts
     }
 
 # ============================================================
@@ -711,7 +732,7 @@ def get_alerts(db: Session = Depends(get_db)):
 # ============================================================
 
 @app.get("/priority-areas")
-def priority_areas(db: Session = Depends(get_db)):
+def priority_areas(db: Session = Depends(get_db), user = Depends(staff)):
     # 1. Get recent predictions per station
     logs = db.query(models.PredictionLog).all()
     latest_logs = {}
@@ -754,3 +775,35 @@ def priority_areas(db: Session = Depends(get_db)):
 print("\n" + "=" * 70)
 print("API READY")
 print("=" * 70)
+
+class ReportStatusRequest(BaseModel):
+    status: Literal["new", "verified", "dispatched", "resolved"]
+
+
+@app.patch("/reports/{report_id}/status")
+def update_report_status(report_id: str, update: ReportStatusRequest, db: Session = Depends(get_db), user = Depends(staff)):
+    report = db.get(models.Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    try:
+        workflow.transition_report(db, report, workflow.LEGACY_STATUS[update.status], user)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    return {"success": True, "report": {"id": report.id, "status": report.status}}
+
+
+@app.patch("/alerts/{alert_id}/revoke")
+def revoke_alert(alert_id: str, db: Session = Depends(get_db), user = Depends(staff)):
+    alert = db.get(models.Alert, alert_id)
+    if alert is None:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    alert.status = "Revoked"
+    metadata = workflow.get(db, 'alert_metadata:' + alert.id)
+    if metadata:
+        metadata['lifecycle'] = 'revoked'
+        workflow.put(db, 'alert_metadata:' + alert.id, 'alert_metadata', metadata)
+    workflow.audit(db, alert.id, user.username, 'revoked', {})
+    db.commit()
+    return {"success": True, "alert": {"id": alert.id, "status": alert.status}}

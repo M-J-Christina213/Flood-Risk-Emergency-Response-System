@@ -1,0 +1,56 @@
+station,alert_level,minor_flood_level,major_flood_level
+Badalgama,2,2,2
+Baddegama,2,2,2
+Calidonia,2,2,2
+Deraniyagala,2,2,3
+Dunamale,2,2,2
+Ellagawa,2,2,2
+Galgamuwa,2,2,2
+Giriulla,2,2,2
+Glencourse,2,3,2
+Hanwella,3,3,3
+Holombuwa,2,3,3
+Horowpatana,2,2,2
+Horowpothana,1,1,1
+Kalawellawa (Millakanda),2,2,2
+Katharagama,2,2,2
+Kithulgala,1,1,1
+Kitulgala,2,2,2
+Kuda Oya,2,2,3
+Magura,3,2,2
+Manampitiya,1,1,1
+Manampitiya ( Old),2,2,2
+Manampitiya (HMIS),3,3,3
+Moragaswewa,3,2,3
+Moraketiya,3,3,3
+N' Street,2,2,2
+Nagalagam Street,1,1,1
+Nakkala,2,2,2
+Nawalapitiya,2,2,3
+Norwood,2,2,2
+Padiyatalawa,2,2,2
+Padiyathalawa,1,1,1
+Panadugama,2,2,2
+Peradeniya,2,2,2
+Pitabeddara,3,2,2
+Putupaula,2,2,2
+Rathnapura,1,1,1
+Ratnapura,2,2,2
+Ridi bendi Ella (Dam),2,2,2
+Siyambalanduwa,2,2,2
+Taldena,2,2,2
+Taldena (HMIS),1,1,1
+Tanamalwila,2,2,2
+Tantirimale,2,2,2
+Tawalama,2,2,2
+Thaldena,1,1,1
+Thalgahagoda,2,2,2
+Thanamalwila,1,1,1
+Thanthirimale,1,1,1
+Thawalama,1,1,1
+Urawa,2,2,2
+Wellawaya,2,2,2
+Weraganthota,1,1,1
+Weragantota,2,2,2
+Yaka Wewa,1,1,1
+Yakawewa,2,2,2

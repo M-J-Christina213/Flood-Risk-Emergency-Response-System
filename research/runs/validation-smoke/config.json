@@ -1,0 +1,54 @@
+{
+  "candidates": 1,
+  "folds": 2,
+  "jobs": 1,
+  "trees": 8,
+  "seed": 42,
+  "max_gap_hours": 72,
+  "boosting": false,
+  "validation_only": true,
+  "run_id": "validation-smoke",
+  "dataset_sha256": "d72b4ba02aa75247c4bf4c2ff94d881b16c31d4b8a152fa549cf07729735bb5a",
+  "features": [
+    "water_level_current",
+    "water_level_previous",
+    "water_level_lag_1",
+    "water_level_lag_2",
+    "water_level_lag_3",
+    "rainfall_12hr",
+    "rainfall_lag_1",
+    "rainfall_lag_2",
+    "rainfall_rolling_3",
+    "water_level_rolling_3",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "alert_level",
+    "minor_flood_level",
+    "major_flood_level",
+    "rainfall_missing",
+    "rainfall_lag_1_missing",
+    "rainfall_lag_2_missing"
+  ],
+  "test_policy": "Historical cutoff retained; previously inspected. No prospective claim.",
+  "selection_rule": "Lowest mean fold RMSE; require improvement over persistence in every fold for promotion consideration. No automatic activation.",
+  "rainfall_strategies": [
+    "training-fold median plus source missingness",
+    "constant zero plus source missingness"
+  ],
+  "units": "levels m (known ft converted); reported rainfall assumed mm, requires source verification",
+  "gap_policy": "72h default engineering exclusion, configurable; not a scientifically established horizon",
+  "dependencies": {
+    "numpy": "2.1.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.5.3",
+    "xgboost": "3.4.1"
+  },
+  "environment": {
+    "python": "3.12.3 (tags/v3.12.3:f6650f9, Apr  9 2024, 14:05:25) [MSC v.1938 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel"
+  }
+}

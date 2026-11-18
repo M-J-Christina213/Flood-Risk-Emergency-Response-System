@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { STATION_DATA, StationItem, NEARBY_SHELTERS_DATA, ShelterItem } from '@/constants/data';
+import { StationItem, NEARBY_SHELTERS_DATA } from '@/constants/data';
 import { Colors } from '@/constants/theme';
 
 // Fix for default Leaflet marker icons in React
@@ -58,9 +58,10 @@ const createShelterIcon = () => {
 
 interface WebMapProps {
   onMarkerPress: (station: StationItem) => void;
+  stations: StationItem[];
 }
 
-export default function WebMap({ onMarkerPress }: WebMapProps) {
+export default function WebMap({ onMarkerPress, stations }: WebMapProps) {
   const initialCenter: [number, number] = [6.904, 80.082];
   const initialZoom = 11;
 
@@ -75,7 +76,7 @@ export default function WebMap({ onMarkerPress }: WebMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {STATION_DATA.map((station) => (
+        {stations.map((station) => (
           <Marker
             key={station.id}
             position={[station.latitude, station.longitude]}
@@ -98,7 +99,7 @@ export default function WebMap({ onMarkerPress }: WebMapProps) {
           >
             <Popup>
               <strong>{shelter.name}</strong><br />
-              Capacity: {shelter.capacity - shelter.occupancy} available
+              Sample shelter; availability unverified
             </Popup>
           </Marker>
         ))}

@@ -1,173 +1,61 @@
-import { useState } from "react";
-import { MapPin, Camera, Send } from "lucide-react";
+﻿import { useState } from "react";
 import { Link } from "react-router-dom";
+import { submitCitizenReport } from "../services/api";
 
-function ReportFlood() {
+export default function ReportFlood() {
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [type, setType] = useState("road");
+  const [severity, setSeverity] = useState("moderate");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [description, setDescription] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const [type, setType] = useState("");
-  const [severity, setSeverity] = useState("");
+  function locate() {
+    if (!navigator.geolocation) { setMessage("Location unavailable. Enter coordinates manually."); return; }
+    navigator.geolocation.getCurrentPosition(position => {
+      setLatitude(String(position.coords.latitude));
+      setLongitude(String(position.coords.longitude));
+      setMessage("Location captured. Review before submitting.");
+    }, () => setMessage("Location unavailable. Enter coordinates manually."), { timeout: 10000 });
+  }
 
-  function submitReport(e) {
-
-    e.preventDefault();
-
-    console.log({
-      type,
-      severity,
-      timestamp: new Date().toISOString()
+  async function submitReport(event) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    const result = await submitCitizenReport({
+      latitude: Number(latitude), longitude: Number(longitude),
+      report_type: type, severity, description, anonymous: true,
+      client_request_id: requestId,
     });
-
-    alert("Flood report submitted successfully.");
-
+    setBusy(false);
+    if (result.success) setRequestId(crypto.randomUUID());
+    setMessage(result.success ? `Report saved. ID: ${result.report.id}. Status: ${result.report.status}.` : "Report was not saved. Check the API connection and try again.");
   }
 
   return (
-
-    <div className="report-page">
-
-      <header>
-
-        <Link to="/">
-          ← Back
-        </Link>
-
-        <h1>Report Flooding</h1>
-
-        <p>
-          Help authorities understand the situation in your area.
-        </p>
-
-      </header>
-
-
-      <form onSubmit={submitReport}>
-
-        <section>
-
-          <h2>
-            <MapPin size={20} />
-            Location
-          </h2>
-
-          <div className="location-box">
-
-            <MapPin size={20} />
-
-            <span>
-              Current location will be detected automatically
-            </span>
-
-          </div>
-
-        </section>
-
-
-        <section>
-
-          <h2>What are you seeing?</h2>
-
-          <label>
-            <input
-              type="radio"
-              name="type"
-              value="road"
-              onChange={(e) => setType(e.target.value)}
-            />
-            Road flooding
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="type"
-              value="river"
-              onChange={(e) => setType(e.target.value)}
-            />
-            River overflow
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="type"
-              value="building"
-              onChange={(e) => setType(e.target.value)}
-            />
-            Building flooding
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name="type"
-              value="blocked"
-              onChange={(e) => setType(e.target.value)}
-            />
-            Road / bridge blocked
-          </label>
-
-        </section>
-
-
-        <section>
-
-          <h2>Severity</h2>
-
-          <select
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value)}
-          >
-
-            <option value="">
-              Select severity
-            </option>
-
-            <option value="low">
-              Low
-            </option>
-
-            <option value="moderate">
-              Moderate
-            </option>
-
-            <option value="severe">
-              Severe
-            </option>
-
-          </select>
-
-        </section>
-
-
-        <section>
-
-          <h2>
-            <Camera size={20} />
-            Photo
-          </h2>
-
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-          />
-
-        </section>
-
-
-        <button type="submit">
-
-          <Send size={20} />
-
-          Submit Flood Report
-
-        </button>
-
+    <main className="report-page" style={{ maxWidth: 640, margin: "2rem auto", padding: "1rem" }}>
+      <Link to="/">Back to dashboard</Link>
+      <h1>Report Flooding</h1>
+      <p>Supervisor prototype. Reports are saved locally for review; submitting does not contact emergency services.</p>
+      <form onSubmit={submitReport} style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
+        <button type="button" onClick={locate}>Use my location</button>
+        <label>Latitude <input aria-label="Latitude" type="number" step="any" min="-90" max="90" required value={latitude} onChange={e => setLatitude(e.target.value)} /></label>
+        <label>Longitude <input aria-label="Longitude" type="number" step="any" min="-180" max="180" required value={longitude} onChange={e => setLongitude(e.target.value)} /></label>
+        <label>Report type <select value={type} onChange={e => setType(e.target.value)}>
+          <option value="road">Road flooding</option><option value="river">River overflow</option>
+          <option value="building">Building flooding</option><option value="blocked">Road / bridge blocked</option>
+        </select></label>
+        <label>Severity <select value={severity} onChange={e => setSeverity(e.target.value)}>
+          <option value="minor">Minor</option><option value="moderate">Moderate</option>
+          <option value="severe">Severe</option><option value="critical">Critical</option>
+        </select></label>
+        <label>Description <textarea value={description} onChange={e => setDescription(e.target.value)} /></label>
+        <button type="submit" disabled={busy}>{busy ? "Saving..." : "Submit Flood Report"}</button>
       </form>
-
-    </div>
-
+      <p role="status" style={{ marginTop: "1rem" }}>{message}</p>
+    </main>
   );
 }
-
-export default ReportFlood;

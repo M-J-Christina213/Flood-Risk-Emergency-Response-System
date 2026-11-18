@@ -1,0 +1,1 @@
+participant_id,role,session_date,device,task_id,attempted,completion_status,seconds,errors,assistance,source_freshness_score,warning_distinction_score,workflow_score,delivery_state_score,recovery_score,comments,facilitator_notes,followup_issue

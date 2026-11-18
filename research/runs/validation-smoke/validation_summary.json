@@ -1,0 +1,13 @@
+{
+  "candidate": "rf_0_constant",
+  "validation": {
+    "rmse": 0.5544858680013418,
+    "mae": 0.3347873340838933,
+    "r2": 0.9702426206136224,
+    "macro_f1": 0.7218925391625968,
+    "severe_underprediction_rate": 0.248689813298395
+  },
+  "beats_persistence_all_folds": false,
+  "hybrid": null,
+  "holdout_inspected": false
+}

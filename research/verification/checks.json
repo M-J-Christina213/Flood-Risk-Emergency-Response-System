@@ -1,0 +1,94 @@
+{
+  "checks": [
+    {
+      "check": "python_compile",
+      "command": [
+        "C:\\Users\\Jethuni\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-m",
+        "compileall",
+        "-q",
+        "app",
+        "scripts",
+        "tests"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "seconds": 0.9360169999999925
+    },
+    {
+      "check": "regression_integration",
+      "command": [
+        "C:\\Users\\Jethuni\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "seconds": 39.61952300000121
+    },
+    {
+      "check": "legacy_compatibility",
+      "command": [
+        "C:\\Users\\Jethuni\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+        "-X",
+        "utf8",
+        "scripts/verify_demo.py"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "seconds": 20.009362100012368
+    },
+    {
+      "check": "frontend_build",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "cwd": "frontend",
+      "exit_code": 0,
+      "seconds": 3.5808345999976154
+    },
+    {
+      "check": "frontend_lint",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "node_modules/eslint/bin/eslint.js",
+        "."
+      ],
+      "cwd": "frontend",
+      "exit_code": 0,
+      "seconds": 11.559497099980945
+    },
+    {
+      "check": "mobile_typecheck",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.EXE",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "cwd": "mobile",
+      "exit_code": 0,
+      "seconds": 10.501609800005099
+    },
+    {
+      "check": "diff_whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": ".",
+      "exit_code": 0,
+      "seconds": 0.13980289999744855
+    }
+  ],
+  "original_database_and_models_unchanged": true,
+  "browser": "Separate command: python -X utf8 scripts/verify_browser.py; see browser.json"
+}

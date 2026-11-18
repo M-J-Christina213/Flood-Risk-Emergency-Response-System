@@ -1,8 +1,11 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import UserApp from "./pages/UserApp";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminDashboard from "./pages/AdminDashboard";
 import ReportFlood from "./pages/ReportFlood";
 import Alerts from "./pages/Alerts";
+import SignIn from './pages/SignIn';
+import Operations from './pages/Operations';
+import Account from './pages/Account';
+import AccessGate from './components/AccessGate';
 
 function App() {
   return (
@@ -11,7 +14,10 @@ function App() {
       <Routes>
 
         {/* Authority dashboard at root */}
-        <Route path="/" element={<AdminDashboard />} />
+        <Route path="/" element={<AccessGate staff><AdminDashboard /></AccessGate>} />
+        <Route path="/login" element={<SignIn />} />
+        <Route path="/operations" element={<AccessGate staff><Operations /></AccessGate>} />
+        <Route path="/account" element={<AccessGate><Account /></AccessGate>} />
 
         {/* Public user pages (backups) */}
         <Route path="/report" element={<ReportFlood />} />

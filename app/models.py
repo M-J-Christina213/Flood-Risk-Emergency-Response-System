@@ -45,3 +45,24 @@ class Alert(Base):
     location = Column(String, nullable=True)
     status = Column(String, default="Active")
     time = Column(String, default=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class User(Base):
+    __tablename__ = 'users_v2'
+    username = Column(String, primary_key=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+
+
+class WorkflowRecord(Base):
+    """Additive versioned entities; legacy report/alert schemas remain intact.
+
+    Immutable keys enforce import, prediction, subscription and ack deduplication.
+    JSON payloads are validated by service/API schemas before insertion.
+    """
+    __tablename__ = 'workflow_records_v2'
+    id = Column(String, primary_key=True)
+    kind = Column(String, index=True, nullable=False)
+    payload = Column(String, nullable=False)
+    created_at = Column(String, default=lambda: datetime.now(timezone.utc).isoformat(), nullable=False)

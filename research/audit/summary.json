@@ -1,0 +1,73 @@
+{
+  "raw_rows": 27977,
+  "clean_rows": 22106,
+  "legacy_rows": 21831,
+  "legacy_all_train_rows": 16457,
+  "legacy_all_test_rows": 5374,
+  "legacy_evaluated_test_rows": 5361,
+  "exclusions_by_missing_fields": {
+    "water_level_previous": 13
+  },
+  "actual_feature_count": 17,
+  "features": [
+    "water_level_current",
+    "water_level_previous",
+    "water_level_lag_1",
+    "water_level_lag_2",
+    "water_level_lag_3",
+    "rainfall_12hr",
+    "rainfall_lag_1",
+    "rainfall_lag_2",
+    "rainfall_rolling_3",
+    "water_level_rolling_3",
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "alert_level",
+    "minor_flood_level",
+    "major_flood_level"
+  ],
+  "reported_29_feature_count_cause": "Comprehensive script counts metadata columns; fitted model has 17 numeric inputs.",
+  "legacy_rf": {
+    "mae": 0.4109845369802114,
+    "rmse": 0.744538442819179,
+    "r2": 0.9143501791363491,
+    "max_absolute_error": 10.086263333333328
+  },
+  "legacy_horizon_hours": {
+    "count": 5361.0,
+    "mean": 72.276440962507,
+    "std": 306.3192542208788,
+    "min": 0.0,
+    "25%": 3.0,
+    "50%": 9.0,
+    "75%": 24.0,
+    "max": 3201.0
+  },
+  "rainfall_missing_raw": 11342,
+  "restored_missing_rainfall_clean": 5722,
+  "unknown_rainfall_provenance": 0,
+  "duplicate_station_times_clean": 66,
+  "corrected_target_disagreements": 438,
+  "corrected_eligible_history_rows": 4796,
+  "artifacts_before": {
+    "outputs\\app.db": "ce60f7036cf5f4c4228b1898d9aae6748777bc726d14692412a400b058fba940",
+    "outputs\\ml\\models\\extra_trees_fixed.pkl": "4a59669b4ebb1941834ff3591cbb8c76e820e09a37369e751593bf8d32743e44",
+    "outputs\\ml\\models\\flood_prediction_model.pkl": "2b2631db88bf2dde33be5198fccb1055bddf3911b4e11ef4b6d055f94391fe57",
+    "outputs\\ml\\models\\gradient_boosting_fixed.pkl": "d37ba2762dec323df95127f5fd9a120d0941be8a52e98923baa3247d83b32e04",
+    "outputs\\ml\\models\\random_forest.pkl": "4616931d5fd681eb1f2b077606ac34c84135c760454d76752697ff26268596ef",
+    "outputs\\ml\\models\\random_forest_fixed.pkl": "2b2631db88bf2dde33be5198fccb1055bddf3911b4e11ef4b6d055f94391fe57",
+    "outputs\\ml\\models\\xgboost.pkl": "687f0a68682025ebd869ddf4a7503d311a95732c395ce95c277c33467f89a740",
+    "outputs\\ml\\models\\xgboost_fixed.pkl": "930cda121c3dababdc0bfb9e271ef1c8c09d533515f5e0328648aa94f34e0341"
+  },
+  "limitations": [
+    "No attached report, slides or notebooks found in workspace.",
+    "Station membership is provisional; aliases are kept separate.",
+    "Coordinate-valued unit fields show shifted extraction columns; not repairable by unit conversion.",
+    "Largest errors are retained. Source PDFs require manual gauge/datum verification.",
+    "Legacy test has already been inspected. No demonstrably unused later holdout established.",
+    "Hybrid source/CSV uses 2024 validation inverse-RMSE weights, but did not purge boundary targets.",
+    "84.46% accuracy uses test P60/P80/P95, not official station thresholds."
+  ]
+}

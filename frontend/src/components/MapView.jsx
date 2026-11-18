@@ -84,6 +84,7 @@ export default function MapView({
 }) {
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-inner border border-slate-200">
+      <p className="absolute bottom-2 left-2 z-[1000] bg-white p-2 text-xs max-w-xs">Provisional station locations and historical risk points, not validated inundation boundaries. Shelter markers are samples.</p>
       <MapContainer
         center={MAP_CENTER_SRI_LANKA}
         zoom={MAP_DEFAULT_ZOOM}
@@ -99,7 +100,7 @@ export default function MapView({
         <MapRecenter center={selectedLocation} zoom={selectedZoom} />
 
         {/* 1. Stations Markers */}
-        {stationsData.map((station) => {
+        {stationsData.filter(s => s.supported_project_coverage !== false).map((station) => {
           const coords = STATION_COORDINATES[station.station];
           if (!coords) return null;
 
@@ -115,6 +116,7 @@ export default function MapView({
               <Popup>
                 <div className="p-1 font-sans">
                   <h4 className="font-bold text-slate-800 text-sm">{station.station} Station</h4>
+                  <p>{station.source_mode} · {station.freshness_status} · {station.level_unit || 'unverified unit'}</p>
                   <p className="text-xs text-slate-500 font-semibold">{coords.river} • {station.river_basin || "River Basin"}</p>
                   <hr className="my-1.5 border-slate-100" />
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">

@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "anonymous dashboard access requires sign-in",
+    "staff sign-in opens existing dashboard",
+    "public report form saves real report",
+    "review, assignment, progress, resolution persist across reload",
+    "report audit history is visible",
+    "admin model metadata and retraining command load",
+    "web station subscription persists",
+    "web CSV upload validates four out-of-order-capable station observations",
+    "web worker action exposes persistent prediction and prototype alert",
+    "web inbox alert acknowledgement persists",
+    "public alerts render prototype/source metadata",
+    "no uncaught browser exceptions"
+  ],
+  "reportId": "20261116100538653926",
+  "exceptions": []
+}

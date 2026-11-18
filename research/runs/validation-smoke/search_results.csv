@@ -1,0 +1,11 @@
+candidate,fold,rmse,mae,r2,macro_f1,severe_underprediction_rate,parameters
+persistence,0,0.4884067933766383,0.28398207792207797,0.9721192403748388,0.6810993189057168,0.06976744186046512,
+persistence,1,0.5421653817305432,0.2831568397435898,0.9768165147242377,0.8692934432521024,0.09859154929577464,
+rf_0_median,0,0.5510709736976671,0.35908472974648625,0.9645058906798543,0.6180407486377636,0.3488372093023256,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+rf_0_median,1,0.5661464663618677,0.3228404824241873,0.9747202508191586,0.8149879044992658,0.22535211267605634,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+rf_0_constant,0,0.5372111284382852,0.34220912373775164,0.9662688450772258,0.6396495327102804,0.27906976744186046,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+rf_0_constant,1,0.5717606075643984,0.32736554443003485,0.9742163961500191,0.8041355456149132,0.21830985915492956,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+extra_trees_0_median,0,0.5479917065583774,0.3616629866621867,0.9649014494689352,0.6369621012344024,0.23255813953488372,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+extra_trees_0_median,1,0.6336781029607514,0.3649966551577499,0.9683296721653627,0.7697676076216001,0.3380281690140845,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+extra_trees_0_constant,0,0.5594128669561198,0.3669239289998309,0.9634231658867476,0.6450862556561086,0.23255813953488372,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"
+extra_trees_0_constant,1,0.6243457392317745,0.3618153785901049,0.9692556395456932,0.7836512015438688,0.30985915492957744,"{""min_samples_leaf"": 1, ""max_features"": 0.7, ""max_depth"": 6, ""n_estimators"": 8, ""random_state"": 42, ""n_jobs"": 1}"

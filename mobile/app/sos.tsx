@@ -13,12 +13,12 @@ export default function SosScreen() {
 
   const handleSosPress = () => {
     Alert.alert(
-      'SEND SOS ALER',
-      'This will immediately dispatch your location to emergency responders. Are you sure?',
+      'SOS DEMONSTRATION',
+      'This is a local demonstration only. No responders will be contacted. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'SEND SOS', 
+          text: 'RUN DEMO',
           style: 'destructive',
           onPress: () => {
             setIsSending(true);
@@ -47,9 +47,9 @@ export default function SosScreen() {
           <View style={styles.successIcon}>
             <ShieldCheck size={64} color={Colors.safe} />
           </View>
-          <Text style={styles.title}>SOS REQUEST SENT</Text>
+          <Text style={styles.title}>SOS DEMO COMPLETE</Text>
           <Text style={styles.subtitle}>
-            Emergency responders have been notified of your location. Stay calm and stay in a safe place.
+            No emergency message was sent. This prototype does not contact responders.
           </Text>
 
           <View style={styles.infoCard}>
@@ -58,7 +58,7 @@ export default function SosScreen() {
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>Your Location</Text>
                 <Text style={styles.infoValue}>Hanwella, Western Province</Text>
-                <Text style={styles.infoSubtext}>GPS Accuracy: 4m</Text>
+                <Text style={styles.infoSubtext}>Sample location; GPS not captured</Text>
               </View>
             </View>
             <View style={styles.divider} />

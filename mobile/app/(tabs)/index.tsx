@@ -22,15 +22,16 @@ const { width } = Dimensions.get("window");
 export default function HomeScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [sourceNotice, setSourceNotice] = useState('Loading station observation…');
   const [riskData, setRiskData] = useState({
     location: "Hanwella, Western Province",
     station: "Hanwella",
-    riskLevel: "HIGH" as any,
-    waterLevel: 4.61,
-    predictedLevel: 4.85,
-    rainfall: 18.6,
-    lastUpdated: "5m ago",
-    riverTrend: "Rising",
+    riskLevel: "UNKNOWN",
+    waterLevel: null as number | null,
+    predictedLevel: null as number | null,
+    rainfall: null as number | null,
+    lastUpdated: "Unknown",
+    riverTrend: "Unverified",
   });
 
   const loadData = async () => {
@@ -38,9 +39,10 @@ export default function HomeScreen() {
     try {
       const data = await fetchStationDetails("Hanwella");
       if (data) {
+        setSourceNotice(`${data.source_mode || 'Unknown source'} · ${data.freshness_status || 'Unknown freshness'} · ${data.model_version || 'Unknown model'}. Prototype; not an official warning. Next observation time is unknown.`);
         // Format last updated time in Asia/Colombo
-        const predTime = data.prediction_generated_at
-          ? new Date(data.prediction_generated_at).toLocaleString("en-LK", {
+        const predTime = data.observation_time
+          ? new Date(data.observation_time).toLocaleString("en-LK", {
               timeZone: "Asia/Colombo",
               day: "2-digit",
               month: "short",
@@ -65,7 +67,7 @@ export default function HomeScreen() {
           rainfall: data.rainfall_12hr,
           lastUpdated: predTime,
         }));
-      }
+      } else { setSourceNotice('Disconnected: station observation unavailable. Previously displayed data may be stale.'); }
     } catch (e) {
       console.warn("Failed to update home risk data:", e);
     } finally {
@@ -97,6 +99,7 @@ export default function HomeScreen() {
         }
       >
         {/* PREMIUM HERO SECTION */}
+        <Text accessibilityRole="alert" style={{padding:12}}>{sourceNotice}</Text>
         <View style={[styles.heroSection, { backgroundColor: primaryColor }]}>
           {/* Glassmorphism subtle overlay */}
           <View style={styles.heroOverlay} />
@@ -127,7 +130,7 @@ export default function HomeScreen() {
             </View>
             
             <View style={styles.waterLevelContainer}>
-              <Text style={styles.waterLevelText}>{riskData.waterLevel}</Text>
+              <Text style={styles.waterLevelText}>{riskData.waterLevel ?? '—'}</Text>
               <Text style={styles.waterLevelUnit}>m</Text>
             </View>
             <Text style={styles.waterLevelSub}>Current River Level at {riskData.station}</Text>
@@ -136,7 +139,7 @@ export default function HomeScreen() {
               <Waves size={20} color="rgba(255,255,255,0.9)" />
               <View style={styles.predictionTextContainer}>
                 <Text style={styles.predictionTextLabel}>Predicted River Level (Next Step)</Text>
-                <Text style={styles.predictionTextValue}>{riskData.predictedLevel}m</Text>
+                <Text style={styles.predictionTextValue}>{riskData.predictedLevel ?? '—'} m</Text>
               </View>
               <Activity size={20} color="rgba(255,255,255,0.5)" />
             </View>
@@ -221,7 +224,7 @@ export default function HomeScreen() {
           {/* SHELTERS - SLEEK LIST */}
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Nearest Safe Shelters</Text>
+              <Text style={styles.sectionTitle}>Sample shelter locations (unverified)</Text>
               <TouchableOpacity onPress={() => router.push("/(tabs)/map")}>
                 <Text style={styles.viewAllText}>Map View</Text>
               </TouchableOpacity>

@@ -3,56 +3,20 @@ import { StyleSheet, View, SafeAreaView, Text, ScrollView, TouchableOpacity } fr
 import { Colors } from '@/constants/theme';
 import { AlertCard, AlertSeverity } from '@/components/AlertCard';
 import { Bell, RefreshCw } from 'lucide-react-native';
-import { fetchAlerts } from '@/services/api';
-
-const ALERTS_DATA = [
-  {
-    id: '1',
-    title: 'Flood Warning',
-    location: 'Kelani Ganga — Hanwella',
-    message: 'Water levels are expected to rise above minor flood level in the next 24 hours. Evacuate low-lying areas.',
-    severity: 'HIGH' as AlertSeverity,
-    timestamp: '10m ago',
-    type: 'WARNING',
-  },
-  {
-    id: '2',
-    title: 'Heavy Rainfall Warning',
-    location: 'Western Province',
-    message: 'Heavy rainfall expected exceeding 100mm. Possibility of localized urban flooding.',
-    severity: 'MEDIUM' as AlertSeverity,
-    timestamp: '2h ago',
-    type: 'WARNING',
-  },
-  {
-    id: '3',
-    title: 'River Level Alert',
-    location: 'Kalu Ganga — Ratnapura',
-    message: 'Water level is rising rapidly. Please stay alert.',
-    severity: 'MEDIUM' as AlertSeverity,
-    timestamp: '4h ago',
-    type: 'WARNING',
-  },
-  {
-    id: '4',
-    title: 'Shelter Opened',
-    location: 'Colombo District',
-    message: 'Three new emergency shelters have been opened for displaced residents.',
-    severity: 'INFO' as AlertSeverity,
-    timestamp: '1d ago',
-    type: 'INFORMATION',
-  },
-];
+import { fetchAlertsState } from '@/services/api';
 
 export default function AlertsScreen() {
   const [filter, setFilter] = useState<'ALL' | 'WARNINGS' | 'INFORMATION'>('ALL');
 
-  const [alertsData, setAlertsData] = useState<any[]>(ALERTS_DATA);
+  const [alertsData, setAlertsData] = useState<any[]>([]);
+  const [source, setSource] = useState('Loading saved prototype alerts…');
   const [loading, setLoading] = useState(false);
 
   const loadAlerts = async () => {
     setLoading(true);
-    const data = await fetchAlerts();
+    const result = await fetchAlertsState();
+    const data = result.alerts;
+    setSource(`${result.source}; fetched: ${result.fetchedAt || 'never'}. Not official government warnings.`);
     if (data) {
       if (data.length > 0) {
         setAlertsData(data.map((alert: any) => {
@@ -99,6 +63,7 @@ export default function AlertsScreen() {
         </TouchableOpacity>
       </View>
 
+      <Text accessibilityRole="alert" style={{padding:12}}>{loading ? 'Refreshing…' : source}</Text>
       <View style={styles.filterContainer}>
         {['ALL', 'WARNINGS', 'INFORMATION'].map((f) => (
           <TouchableOpacity

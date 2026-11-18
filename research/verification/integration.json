@@ -1,0 +1,40 @@
+{
+  "permissions": "anonymous 401, public 403, coordinator import 403, wrong credentials 401; no registration privilege escalation",
+  "report_workflow": {
+    "report_id": "20261116100619646190",
+    "transitions": 4,
+    "manual_action": "completed",
+    "retry_deduplicated": true
+  },
+  "observation_alert_workflow": {
+    "successful_predictions": 1,
+    "failed_missing_history": 3,
+    "worker_request_seconds": 0.5630529000191018,
+    "alert_id": "AUTO619e01f32503aef7a9808f83",
+    "delivery_states": [
+      "available_in_web_inbox",
+      "test_recorded"
+    ],
+    "ack_count": 1,
+    "cooldown_and_escalation": true
+  },
+  "latency": {
+    "environment": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.3",
+    "workload": "30 sequential requests, five station observations each; feature generation plus 200-tree legacy RF",
+    "samples": 30,
+    "median_seconds": 0.12403869999980088,
+    "p95_seconds": 0.17711070499644846,
+    "max_seconds": 0.20729879999998957,
+    "under_10_seconds": true
+  },
+  "failures": "invalid thresholds rejected; replay alerts suppressed; inference failure persisted; provider failure/retry persisted",
+  "pdf_fallback": {
+    "source": "2026-06-24_0030_Water_Level.pdf",
+    "accepted": 12,
+    "rejected": 28,
+    "duplicate_import_suppressed": true
+  },
+  "original_database_unchanged": true,
+  "models_unchanged": true
+}
